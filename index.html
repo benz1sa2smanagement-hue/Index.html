@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#ffffff">
+<title>StockFlow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f2f2f7;
+  --surface: #ffffff;
+  --surface2: #f2f2f7;
+  --border: #e5e5ea;
+  --text: #1c1c1e;
+  --text2: #6c6c70;
+  --text3: #aeaeb2;
+  --accent: #007aff;
+  --accent-light: #e8f0fe;
+  --green: #34c759;
+  --green-light: #e9faf0;
+  --red: #ff3b30;
+  --red-light: #fff0ee;
+  --orange: #ff9500;
+  --orange-light: #fff7e6;
+  --purple: #af52de;
+  --purple-light: #f5eeff;
+  --nav-h: 83px;
+  --safe-top: env(safe-area-inset-top, 44px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --radius: 14px;
+  --radius-sm: 10px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+html, body { height: 100%; font-family: 'Sarabun', -apple-system, sans-serif; background: var(--bg); color: var(--text); overflow: hidden; }
+
+/* LOGIN */
+#login-screen { position: fixed; inset: 0; background: var(–surface); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; padding: 24px 20px; padding-top: calc(var(–safe-top) + 24px); }
+.login-logo { font-family: ‘IBM Plex Mono’, monospace; font-size: 32px; font-weight: 600; color: var(–accent); letter-spacing: -1.5px; margin-bottom: 4px; }
+.login-tagline { font-size: 14px; color: var(–text2); margin-bottom: 40px; }
+.login-form { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 12px; }
+.ios-input-group { background: var(–surface); border-radius: var(–radius); overflow: hidden; border: 1px solid var(–border); }
+.ios-input-row { display: flex; align-items: center; padding: 0 16px; border-bottom: 0.5px solid var(–border); }
+.ios-input-row:last-child { border-bottom: none; }
+.ios-input-label { font-size: 15px; color: var(–text); min-width: 90px; padding: 14px 0; }
+.ios-input-row input { flex: 1; border: none; outline: none; font-size: 15px; font-family: ‘Sarabun’, sans-serif; padding: 14px 0; background: transparent; color: var(–text); text-align: right; }
+.ios-input-row input::placeholder { color: var(–text3); }
+.ios-btn { width: 100%; padding: 16px; background: var(–accent); color: #fff; border: none; border-radius: var(–radius); font-size: 17px; font-family: ‘Sarabun’, sans-serif; font-weight: 600; cursor: pointer; }
+.ios-btn:active { opacity: .8; }
+.login-note { display: flex; align-items: center; gap: 6px; padding: 10px 14px; background: var(–green-light); border-radius: var(–radius-sm); }
+.login-note span { font-size: 13px; color: var(–green); font-weight: 500; }
+
+/* APP */
+#app { height: 100%; display: none; flex-direction: column; }
+.status-bar-space { height: var(–safe-top); background: var(–surface); flex-shrink: 0; }
+.top-header { background: var(–surface); padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 0.5px solid var(–border); flex-shrink: 0; }
+.top-title { font-family: ‘IBM Plex Mono’, monospace; font-size: 20px; font-weight: 600; color: var(–accent); letter-spacing: -0.5px; }
+.top-right { display: flex; align-items: center; gap: 10px; }
+.sync-pill { display: flex; align-items: center; gap: 5px; padding: 4px 10px; background: var(–green-light); border-radius: 20px; transition: background .3s; }
+.sync-pill.offline { background: var(–red-light); }
+.sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(–green); animation: pulse 2s infinite; }
+.sync-pill.offline .sync-dot { background: var(–red); animation: none; }
+.sync-pill-text { font-size: 11px; font-weight: 600; color: var(–green); }
+.sync-pill.offline .sync-pill-text { color: var(–red); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.avatar-btn { width: 30px; height: 30px; border-radius: 50%; background: var(–accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; cursor: pointer; border: none; }
+
+/* MAIN */
+.main { flex: 1; overflow: hidden; position: relative; }
+.page { position: absolute; inset: 0; display: none; flex-direction: column; overflow-y: auto; padding: 16px; padding-bottom: calc(var(–nav-h) + 16px); gap: 12px; background: var(–bg); }
+.page.active { display: flex; }
+.page-h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+.page-row { display: flex; align-items: flex-start; justify-content: space-between; }
+.room-tag { font-family: ‘IBM Plex Mono’, monospace; font-size: 12px; font-weight: 600; color: var(–accent); background: var(–accent-light); padding: 4px 10px; border-radius: 6px; margin-top: 6px; }
+.sec-title { font-size: 13px; font-weight: 600; color: var(–text2); text-transform: uppercase; letter-spacing: 0.4px; padding: 0 4px; }
+
+/* BOTTOM NAV */
+.bottom-nav { height: var(–nav-h); background: rgba(255,255,255,0.92); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 0.5px solid var(–border); display: flex; align-items: flex-start; padding-top: 10px; padding-bottom: var(–safe-bottom); flex-shrink: 0; position: relative; z-index: 100; }
+.nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; border: none; background: none; font-family: ‘Sarabun’, sans-serif; color: var(–text3); padding: 0 4px; transition: color .15s; }
+.nav-btn.active { color: var(–accent); }
+.nav-btn svg { width: 24px; height: 24px; }
+.nav-btn span { font-size: 10px; font-weight: 500; }
+.nav-mid { flex: 1; display: flex; justify-content: center; }
+.nav-add-btn { width: 46px; height: 46px; border-radius: 50%; background: var(–accent); display: flex; align-items: center; justify-content: center; margin-top: -10px; box-shadow: 0 4px 16px rgba(0,122,255,.4); border: none; cursor: pointer; }
+.nav-add-btn:active { transform: scale(.92); }
+
+/* CARDS */
+.ios-card { background: var(–surface); border-radius: var(–radius); overflow: hidden; }
+
+/* STATS */
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stat-block { background: var(–surface); border-radius: var(–radius); padding: 14px; }
+.stat-label { font-size: 12px; color: var(–text2); font-weight: 500; margin-bottom: 4px; }
+.stat-val { font-family: ‘IBM Plex Mono’, monospace; font-size: 26px; font-weight: 700; line-height: 1; }
+.stat-unit { font-size: 11px; color: var(–text3); margin-top: 2px; }
+
+/* STOCK ROWS */
+.stock-row { display: flex; align-items: center; padding: 12px 16px; border-bottom: 0.5px solid var(–border); }
+.stock-row:last-child { border-bottom: none; }
+.stock-dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 12px; flex-shrink: 0; }
+.stock-name { flex: 1; font-size: 15px; font-weight: 500; }
+.stock-qty { font-family: ‘IBM Plex Mono’, monospace; font-size: 16px; font-weight: 700; color: var(–accent); }
+.stock-sub { font-size: 11px; color: var(–text3); text-align: right; margin-top: 1px; }
+
+/* MOVEMENT ROWS */
+.mov-row { display: flex; align-items: center; padding: 11px 16px; border-bottom: 0.5px solid var(–border); gap: 12px; cursor: pointer; -webkit-user-select: none; }
+.mov-row:last-child { border-bottom: none; }
+.mov-row:active { background: var(–surface2); }
+.mov-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.mov-icon.in { background: var(–green-light); }
+.mov-icon.out { background: var(–red-light); }
+.mov-icon.adj { background: var(–orange-light); }
+.mov-body { flex: 1; min-width: 0; }
+.mov-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mov-meta { font-size: 12px; color: var(–text2); margin-top: 1px; }
+.mov-qty { font-family: ‘IBM Plex Mono’, monospace; font-size: 17px; font-weight: 700; flex-shrink: 0; }
+.mov-qty.in { color: var(–green); } .mov-qty.out { color: var(–red); } .mov-qty.adj { color: var(–orange); }
+
+/* SEARCH */
+.search-wrap { background: var(–surface2); border-radius: var(–radius-sm); display: flex; align-items: center; padding: 9px 12px; gap: 8px; }
+.search-wrap input { flex: 1; border: none; outline: none; background: transparent; font-size: 15px; font-family: ‘Sarabun’, sans-serif; color: var(–text); }
+.search-wrap input::placeholder { color: var(–text3); }
+
+/* CHIPS */
+.chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; white-space: nowrap; font-family: ‘Sarabun’, sans-serif; background: var(–surface); color: var(–text2); }
+.chip.active { background: var(–accent); color: #fff; }
+.edited-tag { font-size: 10px; font-weight: 600; color: var(–purple); background: var(–purple-light); padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 2px; }
+
+/* RECORD */
+.type-picker { display: flex; background: var(–surface2); border-radius: var(–radius-sm); padding: 3px; gap: 2px; }
+.type-opt { flex: 1; padding: 9px; border-radius: 8px; border: none; font-family: ‘Sarabun’, sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; background: transparent; color: var(–text2); text-align: center; transition: all .18s; }
+.type-opt.in.active { background: var(–surface); color: var(–green); box-shadow: 0 1px 6px rgba(0,0,0,.12); }
+.type-opt.out.active { background: var(–surface); color: var(–red); box-shadow: 0 1px 6px rgba(0,0,0,.12); }
+.type-opt.adj.active { background: var(–surface); color: var(–orange); box-shadow: 0 1px 6px rgba(0,0,0,.12); }
+.form-row { display: flex; align-items: center; padding: 13px 16px; border-bottom: 0.5px solid var(–border); gap: 12px; }
+.form-row:last-child { border-bottom: none; }
+.form-row label { font-size: 15px; color: var(–text); min-width: 76px; flex-shrink: 0; }
+.form-row input, .form-row select { flex: 1; border: none; outline: none; font-size: 15px; font-family: ‘Sarabun’, sans-serif; background: transparent; color: var(–text); text-align: right; }
+.form-row .qty-pair { display: flex; gap: 8px; flex: 1; justify-content: flex-end; align-items: center; }
+.form-row .qty-pair input { max-width: 90px; }
+.form-row .qty-pair select { max-width: 70px; }
+.convert-bar { padding: 9px 14px; background: var(–accent-light); border-radius: var(–radius-sm); font-size: 13px; font-weight: 600; color: var(–accent); display: none; }
+.plat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+.plat-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 4px; border: 1.5px solid var(–border); border-radius: var(–radius-sm); background: var(–surface); cursor: pointer; font-family: ‘Sarabun’, sans-serif; font-size: 12px; font-weight: 500; color: var(–text2); transition: all .15s; }
+.plat-btn:active { opacity: .7; }
+.plat-btn.active { border-color: var(–accent); color: var(–accent); background: var(–accent-light); font-weight: 700; }
+.submit-btn { width: 100%; padding: 17px; background: var(–accent); color: #fff; border: none; border-radius: var(–radius); font-size: 17px; font-family: ‘Sarabun’, sans-serif; font-weight: 700; cursor: pointer; }
+.submit-btn:active { opacity: .85; }
+
+/* PRODUCTS */
+.prod-row { display: flex; align-items: center; padding: 12px 16px; border-bottom: 0.5px solid var(–border); gap: 12px; cursor: pointer; }
+.prod-row:last-child { border-bottom: none; }
+.prod-row:active { background: var(–surface2); }
+.prod-icon { width: 38px; height: 38px; border-radius: 10px; background: var(–accent-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.prod-body { flex: 1; min-width: 0; }
+.prod-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.prod-sku-text { font-family: ‘IBM Plex Mono’, monospace; font-size: 11px; color: var(–text3); margin-top: 1px; }
+.prod-right { text-align: right; flex-shrink: 0; }
+.prod-stock-num { font-family: ‘IBM Plex Mono’, monospace; font-size: 17px; font-weight: 700; color: var(–accent); }
+.prod-case-text { font-size: 11px; color: var(–text3); }
+
+/* MODAL */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 500; display: none; align-items: flex-end; justify-content: center; animation: fadeIn .2s; }
+.overlay.open { display: flex; }
+.sheet { background: var(–surface); width: 100%; max-width: 520px; border-radius: 20px 20px 0 0; padding-bottom: calc(var(–safe-bottom) + 8px); max-height: 92vh; overflow-y: auto; animation: slideUp .28s cubic-bezier(.4,0,.2,1); }
+.sheet-handle { width: 36px; height: 4px; background: var(–border); border-radius: 2px; margin: 10px auto 0; }
+.sheet-header { padding: 14px 20px 12px; display: flex; align-items: center; justify-content: space-between; border-bottom: 0.5px solid var(–border); }
+.sheet-title { font-size: 17px; font-weight: 700; }
+.sheet-close { width: 28px; height: 28px; border-radius: 50%; background: var(–surface2); border: none; cursor: pointer; color: var(–text2); font-size: 15px; display: flex; align-items: center; justify-content: center; }
+.sheet-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+.sheet-footer { padding: 8px 20px 0; display: flex; gap: 10px; }
+.sheet-footer .ios-btn { padding: 14px; font-size: 15px; }
+.btn-red { background: var(–red); }
+
+/* EDIT HISTORY */
+.edit-hist-item { background: var(–surface2); border-radius: var(–radius-sm); padding: 10px 12px; border-left: 3px solid var(–purple); }
+.hist-num { font-size: 12px; font-weight: 700; color: var(–purple); }
+.hist-by { font-size: 11px; color: var(–text2); }
+.hist-prev { font-size: 13px; color: var(–text2); margin-top: 3px; }
+.hist-reason { font-size: 12px; color: var(–text3); margin-top: 2px; }
+
+/* TOAST */
+.toast-wrap { position: fixed; top: calc(var(–safe-top) + 58px); left: 50%; transform: translateX(-50%); z-index: 999; pointer-events: none; }
+.toast { background: rgba(28,28,30,.9); backdrop-filter: blur(12px); color: #fff; padding: 10px 20px; border-radius: 22px; font-size: 14px; font-weight: 500; white-space: nowrap; animation: toastIn .3s ease; }
+.toast.success { background: rgba(52,199,89,.9); }
+.toast.error { background: rgba(255,59,48,.9); }
+@keyframes toastIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+@keyframes slideUp { from{transform:translateY(60px);opacity:0} to{transform:translateY(0);opacity:1} }
+
+/* MISC */
+.offline-bar { background: var(–red); color: #fff; font-size: 13px; font-weight: 500; text-align: center; padding: 5px; display: none; flex-shrink: 0; }
+.offline-bar.show { display: block; }
+.loading-row { display: flex; align-items: center; justify-content: center; padding: 30px; gap: 10px; color: var(–text2); font-size: 14px; }
+.spinner { width: 18px; height: 18px; border: 2px solid var(–border); border-top-color: var(–accent); border-radius: 50%; animation: spin .6s linear infinite; }
+@keyframes spin { to{transform:rotate(360deg)} }
+.empty-state { padding: 36px 20px; text-align: center; color: var(–text3); font-size: 14px; }
+.sku-info-card { background: var(–surface2); border-radius: var(–radius-sm); padding: 12px 16px; display: flex; gap: 20px; flex-wrap: wrap; }
+.sku-info-item .label { font-size: 11px; color: var(–text2); }
+.sku-info-item .val { font-family: ‘IBM Plex Mono’, monospace; font-size: 13px; font-weight: 600; }
+</style>
+
+</head>
+<body>
+
+<!-- LOGIN -->
+
+<div id="login-screen">
+  <div class="login-logo">StockFlow</div>
+  <div class="login-tagline">ระบบจัดการคลังสินค้า</div>
+  <div class="login-form">
+    <div class="ios-input-group">
+      <div class="ios-input-row">
+        <span class="ios-input-label">ชื่อผู้ใช้</span>
+        <input type="text" id="login-name" placeholder="ชื่อของคุณ" maxlength="30">
+      </div>
+      <div class="ios-input-row">
+        <span class="ios-input-label">รหัสคลัง</span>
+        <input type="text" id="login-room" placeholder="WAREHOUSE01" maxlength="20" style="font-family:'IBM Plex Mono',monospace;text-transform:uppercase;">
+      </div>
+    </div>
+    <div class="login-note">
+      <div style="width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;"></div>
+      <span>ใช้รหัสเดียวกับทีม PC เพื่อเชื่อมข้อมูล</span>
+    </div>
+    <button class="ios-btn" onclick="doLogin()">เข้าใช้งาน</button>
+  </div>
+</div>
+
+<!-- APP -->
+
+<div id="app">
+  <div class="status-bar-space"></div>
+  <div class="offline-bar" id="offline-bar">⚠ ไม่มีการเชื่อมต่ออินเทอร์เน็ต</div>
+  <div class="top-header">
+    <div class="top-title">StockFlow</div>
+    <div class="top-right">
+      <div class="sync-pill" id="sync-pill">
+        <div class="sync-dot"></div>
+        <span class="sync-pill-text">ออนไลน์</span>
+      </div>
+      <button class="avatar-btn" id="avatar-btn" onclick="showLogout()">?</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dash">
+      <div class="page-row">
+        <div>
+          <div class="page-h1">หน้าหลัก</div>
+          <div class="room-tag" id="dash-room">-</div>
+        </div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-block"><div class="stat-label">รายการวันนี้</div><div class="stat-val" id="s-today">0</div><div class="stat-unit">รายการ</div></div>
+        <div class="stat-block"><div class="stat-label">SKU ทั้งหมด</div><div class="stat-val" id="s-skus">0</div><div class="stat-unit">สินค้า</div></div>
+        <div class="stat-block" style="background:var(--green-light);"><div class="stat-label" style="color:var(--green);">รับเข้าวันนี้</div><div class="stat-val" style="color:var(--green);" id="s-in">0</div><div class="stat-unit">ชิ้น</div></div>
+        <div class="stat-block" style="background:var(--red-light);"><div class="stat-label" style="color:var(--red);">จ่ายออกวันนี้</div><div class="stat-val" style="color:var(--red);" id="s-out">0</div><div class="stat-unit">ชิ้น</div></div>
+      </div>
+      <div class="sec-title">สต็อคคงเหลือ</div>
+      <div class="ios-card" id="dash-stock"><div class="loading-row"><div class="spinner"></div>กำลังโหลด...</div></div>
+      <div class="sec-title">รายการล่าสุด</div>
+      <div class="ios-card" id="dash-recent"><div class="loading-row"><div class="spinner"></div>กำลังโหลด...</div></div>
+    </div>
+
+```
+<!-- HISTORY -->
+<div class="page" id="page-history">
+  <div class="page-h1">ประวัติ</div>
+  <div class="search-wrap">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="text" id="hist-q" placeholder="ค้นหา..." oninput="filterHist()">
+  </div>
+  <div class="chips">
+    <button class="chip active" onclick="setHistType('',this)">ทั้งหมด</button>
+    <button class="chip" onclick="setHistType('in',this)">📥 รับเข้า</button>
+    <button class="chip" onclick="setHistType('out',this)">📤 จ่ายออก</button>
+    <button class="chip" onclick="setHistType('adj',this)">✏️ ปรับยอด</button>
+  </div>
+  <div class="ios-card" id="hist-list"><div class="loading-row"><div class="spinner"></div>กำลังโหลด...</div></div>
+</div>
+
+<!-- RECORD -->
+<div class="page" id="page-record">
+  <div class="page-h1">บันทึกสต็อค</div>
+  <div class="sec-title">ประเภท</div>
+  <div class="type-picker">
+    <button class="type-opt in active" onclick="setType('in',this)">📥 รับเข้า</button>
+    <button class="type-opt out" onclick="setType('out',this)">📤 จ่ายออก</button>
+    <button class="type-opt adj" onclick="setType('adj',this)">✏️ ปรับยอด</button>
+  </div>
+  <div class="sec-title">ข้อมูล</div>
+  <div class="ios-card">
+    <div class="form-row"><label>สินค้า</label><select id="rec-sku" onchange="onSkuChange()" style="text-align:right;"><option value="">-- เลือก --</option></select></div>
+    <div class="form-row"><label>จำนวน</label><div class="qty-pair"><input type="number" id="rec-qty" placeholder="0" min="0" oninput="calcPcs()"><select id="rec-unit" onchange="calcPcs()"><option value="piece">ชิ้น</option><option value="case">ลัง</option></select></div></div>
+    <div class="form-row"><label>วันที่</label><input type="datetime-local" id="rec-date"></div>
+    <div class="form-row"><label>หมายเหตุ</label><input type="text" id="rec-note" placeholder="ไม่บังคับ"></div>
+  </div>
+  <div class="convert-bar" id="rec-convert">= 0 ชิ้น</div>
+  <div id="rec-sku-info" style="display:none;">
+    <div class="sku-info-card">
+      <div class="sku-info-item"><div class="label">SKU ชิ้น</div><div class="val" id="i-unit">-</div></div>
+      <div class="sku-info-item"><div class="label">SKU ลัง</div><div class="val" id="i-case">-</div></div>
+      <div class="sku-info-item"><div class="label">ชิ้น/ลัง</div><div class="val" id="i-ppc">-</div></div>
+      <div class="sku-info-item"><div class="label">สต็อค</div><div class="val" style="color:var(--accent);" id="i-stock">-</div></div>
+    </div>
+  </div>
+  <div id="platform-sec" style="display:none;">
+    <div class="sec-title">ช่องทางขาย</div>
+    <div class="plat-grid">
+      <button class="plat-btn" onclick="setPlatform('shopee',this)"><span style="font-size:20px;">🛒</span><span>Shopee</span></button>
+      <button class="plat-btn" onclick="setPlatform('lazada',this)"><span style="font-size:20px;">📦</span><span>Lazada</span></button>
+      <button class="plat-btn" onclick="setPlatform('tiktok',this)"><span style="font-size:20px;">🎵</span><span>TikTok</span></button>
+      <button class="plat-btn" onclick="setPlatform('facebook',this)"><span style="font-size:20px;">📘</span><span>Facebook</span></button>
+      <button class="plat-btn" onclick="setPlatform('line',this)"><span style="font-size:20px;">💬</span><span>LINE</span></button>
+      <button class="plat-btn" onclick="setPlatform('other',this)"><span style="font-size:20px;">🏪</span><span>อื่นๆ</span></button>
+    </div>
+    <input type="text" id="plat-other" placeholder="ระบุช่องทาง..." style="display:none;width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:15px;font-family:'Sarabun',sans-serif;margin-top:8px;outline:none;">
+  </div>
+  <button class="submit-btn" onclick="submitRec()">💾 บันทึก</button>
+</div>
+
+<!-- PRODUCTS -->
+<div class="page" id="page-products">
+  <div class="page-row" style="align-items:center;">
+    <div class="page-h1">สินค้า</div>
+    <button onclick="openSkuModal()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:14px;font-family:'Sarabun',sans-serif;font-weight:600;cursor:pointer;">+ เพิ่ม</button>
+  </div>
+  <div class="search-wrap">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="text" id="prod-q" placeholder="ค้นหา..." oninput="renderProds()">
+  </div>
+  <div class="ios-card" id="prod-list"><div class="loading-row"><div class="spinner"></div>กำลังโหลด...</div></div>
+</div>
+```
+
+  </div>
+
+  <!-- BOTTOM NAV -->
+
+  <div class="bottom-nav">
+    <button class="nav-btn active" onclick="showPage('dash',this)">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      <span>หน้าหลัก</span>
+    </button>
+    <button class="nav-btn" onclick="showPage('history',this)">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+      <span>ประวัติ</span>
+    </button>
+    <div class="nav-mid">
+      <button class="nav-add-btn" onclick="showPage('record',null)">
+        <svg width="22" height="22" fill="none" stroke="#fff" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </div>
+    <button class="nav-btn" onclick="showPage('products',this)">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+      <span>สินค้า</span>
+    </button>
+    <button class="nav-btn" id="nav-me-btn" onclick="showPage('dash',this)">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      <span id="nav-me-name">ฉัน</span>
+    </button>
+  </div>
+</div>
+
+<!-- TOAST -->
+
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<!-- MODAL: Edit -->
+
+<div class="overlay" id="overlay-edit" onclick="closeEditBg(event)">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title">✏️ แก้ไขรายการ</div>
+      <button class="sheet-close" onclick="closeEdit()">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="ios-card">
+        <div class="form-row"><label>จำนวน (ชิ้น)</label><input type="number" id="e-qty" min="0"></div>
+        <div class="form-row"><label>วันที่</label><input type="datetime-local" id="e-date"></div>
+        <div class="form-row"><label>หมายเหตุ</label><input type="text" id="e-note" placeholder="-"></div>
+        <div class="form-row"><label>เหตุผล</label><input type="text" id="e-reason" placeholder="เหตุผลการแก้ไข..."></div>
+      </div>
+      <div id="e-hist-sec" style="display:none;">
+        <div class="sec-title" style="padding:0;margin-bottom:8px;">ประวัติการแก้ไขทั้งหมด</div>
+        <div id="e-hist-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+      </div>
+    </div>
+    <div class="sheet-footer">
+      <button class="ios-btn btn-red" style="flex:0.45;padding:14px;font-size:15px;" onclick="deleteRec()">🗑 ลบ</button>
+      <button class="ios-btn" style="flex:1;padding:14px;font-size:15px;" onclick="saveEdit()">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: SKU -->
+
+<div class="overlay" id="overlay-sku" onclick="closeSkuBg(event)">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title" id="sku-title">➕ เพิ่มสินค้า</div>
+      <button class="sheet-close" onclick="closeSku()">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="ios-card">
+        <div class="form-row"><label>ชื่อสินค้า</label><input type="text" id="s-name" placeholder="เช่น น้ำดื่ม 600ml"></div>
+        <div class="form-row"><label>SKU ชิ้น</label><input type="text" id="s-unit" placeholder="WTR-600-U" style="font-family:'IBM Plex Mono',monospace;text-align:right;"></div>
+        <div class="form-row"><label>SKU ลัง</label><input type="text" id="s-case" placeholder="WTR-600-C" style="font-family:'IBM Plex Mono',monospace;text-align:right;"></div>
+        <div class="form-row"><label>ชิ้น/ลัง</label><input type="number" id="s-ppc" value="1" min="1"></div>
+        <div class="form-row"><label>หมวดหมู่</label><input type="text" id="s-cat" placeholder="ไม่บังคับ"></div>
+      </div>
+    </div>
+    <div class="sheet-footer">
+      <button class="ios-btn" style="background:var(--surface2);color:var(--text);flex:0.6;padding:14px;font-size:15px;" onclick="closeSku()">ยกเลิก</button>
+      <button class="ios-btn" style="flex:1;padding:14px;font-size:15px;" onclick="saveSku()">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DB = 'https://stock-30382-default-rtdb.asia-southeast1.firebasedatabase.app';
+let room='', user='', skus={}, movements={}, movArr=[];
+let pollTimer=null, lastHash={s:'',m:''};
+let editingId=null, editingSkuId=null;
+let histType='', recType='in', curPlatform='';
+
+const rp = () => 'rooms/'+room;
+const api = async(p,opt={}) => { const r=await fetch(DB+'/'+p+'.json',{cache:'no-store',...opt}); if(!r.ok) throw new Error(r.status); return r.json(); };
+const apiGet = p => api(p);
+const apiPut = (p,v) => api(p,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(v)});
+const apiPost = async(p,v) => { const d=await api(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(v)}); return d.name; };
+const apiPatch = (p,v) => api(p,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(v)});
+const apiDel = p => api(p,{method:'DELETE'});
+
+function setOnline(v) {
+  const pill=document.getElementById('sync-pill'), bar=document.getElementById('offline-bar');
+  if(pill){ pill.className='sync-pill'+(v?'':' offline'); pill.querySelector('.sync-pill-text').textContent=v?'ออนไลน์':'ออฟไลน์'; }
+  if(bar) bar.className='offline-bar'+(v?'':' show');
+}
+async function poll() {
+  try {
+    const [s,m]=await Promise.all([apiGet(rp()+'/skus'),apiGet(rp()+'/movements')]);
+    setOnline(true);
+    const sh=JSON.stringify(s), mh=JSON.stringify(m);
+    if(sh!==lastHash.s){ lastHash.s=sh; skus=s||{}; renderProds(); updateSkuSel(); updateDash(); }
+    if(mh!==lastHash.m){ lastHash.m=mh; movements=m||{}; movArr=Object.entries(movements).sort((a,b)=>b[1].createdAt-a[1].createdAt); filterHist(); updateDash(); }
+  } catch(e){ setOnline(false); }
+}
+function startPoll(){ if(pollTimer) clearInterval(pollTimer); poll(); pollTimer=setInterval(poll,3000); }
+
+function doLogin(){
+  const n=document.getElementById('login-name').value.trim();
+  const r=document.getElementById('login-room').value.trim().toUpperCase();
+  if(!n){toast('กรุณากรอกชื่อ','error');return;}
+  if(!r||r.length<3){toast('รหัสคลังต้องมีอย่างน้อย 3 ตัว','error');return;}
+  user=n; room=r;
+  localStorage.setItem('sf_user',n); localStorage.setItem('sf_room',r);
+  startApp();
+}
+function autoLogin(){
+  const n=localStorage.getItem('sf_user'), r=localStorage.getItem('sf_room');
+  if(n&&r){user=n;room=r;startApp();return true;}
+  return false;
+}
+function startApp(){
+  document.getElementById('login-screen').style.display='none';
+  const app=document.getElementById('app');
+  app.style.display='flex'; app.style.flexDirection='column'; app.style.height='100%';
+  document.getElementById('avatar-btn').textContent=(user[0]||'?').toUpperCase();
+  document.getElementById('dash-room').textContent=room;
+  document.getElementById('nav-me-name').textContent=user.split(' ')[0];
+  setDefDate(); startPoll();
+}
+function showLogout(){
+  if(confirm('ออกจากระบบ "'+user+'" ?')){
+    clearInterval(pollTimer);
+    localStorage.removeItem('sf_user'); localStorage.removeItem('sf_room'); location.reload();
+  }
+}
+
+function showPage(name, el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if(el&&el.classList.contains('nav-btn')) el.classList.add('active');
+  if(name==='record') setDefDate();
+}
+
+function computeStock(){
+  const map={};
+  Object.values(movements).forEach(m=>{
+    if(!map[m.skuId]) map[m.skuId]=0;
+    if(m.type==='in'||m.type==='adj') map[m.skuId]+=m.pieces;
+    else if(m.type==='out') map[m.skuId]-=m.pieces;
+  });
+  return map;
+}
+function updateDash(){
+  const today=new Date().toISOString().slice(0,10);
+  let cnt=0,tin=0,tout=0;
+  Object.values(movements).forEach(m=>{ const d=(m.date||'').slice(0,10); if(d===today){cnt++; if(m.type==='in') tin+=m.pieces; else if(m.type==='out') tout+=m.pieces;} });
+  document.getElementById('s-today').textContent=cnt;
+  document.getElementById('s-skus').textContent=Object.keys(skus).length;
+  document.getElementById('s-in').textContent=tin;
+  document.getElementById('s-out').textContent=tout;
+  renderDashStock(); renderDashRecent();
+}
+const clrs=['#007aff','#34c759','#ff9500','#ff3b30','#af52de','#5ac8fa','#ff6b35','#30d158'];
+function renderDashStock(){
+  const el=document.getElementById('dash-stock');
+  const sm=computeStock(); const ents=Object.entries(sm);
+  if(!ents.length){el.innerHTML='<div class="empty-state">ยังไม่มีสต็อค</div>';return;}
+  el.innerHTML=ents.map(([id,v],i)=>{
+    const s=skus[id]||{};
+    const cs=s.piecesPerCase>1?Math.floor(v/s.piecesPerCase):null;
+    return '<div class="stock-row"><div class="stock-dot" style="background:'+clrs[i%clrs.length]+';"></div>'
+      +'<div class="stock-name">'+(s.name||id)+'</div>'
+      +'<div style="text-align:right;"><div class="stock-qty">'+v+'</div>'+(cs!==null?'<div class="stock-sub">/ '+cs+' ลัง</div>':'')+'</div></div>';
+  }).join('');
+}
+function renderDashRecent(){
+  const el=document.getElementById('dash-recent');
+  const items=movArr.slice(0,5);
+  if(!items.length){el.innerHTML='<div class="empty-state">ยังไม่มีรายการ</div>';return;}
+  el.innerHTML=items.map(([id,m])=>movRow(id,m,true)).join('');
+}
+
+function setHistType(t,el){ histType=t; document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active')); el.classList.add('active'); filterHist(); }
+function filterHist(){
+  const q=(document.getElementById('hist-q')?.value||'').toLowerCase();
+  const filtered=movArr.filter(([,m])=>{
+    const s=skus[m.skuId]||{};
+    const txt=((s.name||'')+(s.unitSku||'')+(m.user||'')+(m.note||'')).toLowerCase();
+    return (!q||txt.includes(q))&&(!histType||m.type===histType);
+  });
+  const el=document.getElementById('hist-list');
+  if(!filtered.length){el.innerHTML='<div class="empty-state">ไม่พบรายการ</div>';return;}
+  el.innerHTML=filtered.map(([id,m])=>movRow(id,m,false)).join('');
+}
+function movRow(id,m,compact){
+  const s=skus[m.skuId]||{};
+  const icon=m.type==='in'?'📥':m.type==='out'?'📤':'✏️';
+  const cls=m.type==='in'?'in':m.type==='out'?'out':'adj';
+  const pfx=m.type==='in'?'+':m.type==='out'?'-':'±';
+  const dt=m.date?new Date(m.date):null;
+  const ds=dt?(dt.getDate()+'/'+(dt.getMonth()+1)+(compact?'':'/'+dt.getFullYear())+' '+String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0')):'-';
+  const editTag=m.editHistory?.length?'<span class="edited-tag">แก้ไข ×'+m.editHistory.length+'</span>':'';
+  return '<div class="mov-row" onclick="openEdit(\''+id+'\')"><div class="mov-icon '+cls+'">'+icon+'</div>'
+    +'<div class="mov-body"><div class="mov-name">'+(s.name||m.skuId)+'</div>'
+    +'<div class="mov-meta">'+ds+' · '+(m.user||'-')+(m.platform?' · '+m.platform:'')+(m.note?' · '+m.note:'')+'</div>'+editTag+'</div>'
+    +'<div class="mov-qty '+cls+'">'+pfx+m.pieces+'</div></div>';
+}
+
+function setType(t,el){ recType=t; document.querySelectorAll('.type-opt').forEach(b=>b.classList.remove('active')); el.classList.add('active'); document.getElementById('platform-sec').style.display=t==='out'?'block':'none'; if(t!=='out'){curPlatform='';document.querySelectorAll('.plat-btn').forEach(b=>b.classList.remove('active'));document.getElementById('plat-other').style.display='none';} }
+function setDefDate(){ const now=new Date(); const local=new Date(now.getTime()-now.getTimezoneOffset()*60000); const el=document.getElementById('rec-date'); if(el) el.value=local.toISOString().slice(0,16); }
+function onSkuChange(){
+  const id=document.getElementById('rec-sku').value;
+  const info=document.getElementById('rec-sku-info');
+  if(!id||!skus[id]){info.style.display='none';return;}
+  const s=skus[id]; const stock=computeStock()[id]||0;
+  document.getElementById('i-unit').textContent=s.unitSku||'-';
+  document.getElementById('i-case').textContent=s.caseSku||'-';
+  document.getElementById('i-ppc').textContent=(s.piecesPerCase||1)+' ชิ้น';
+  document.getElementById('i-stock').textContent=stock+' ชิ้น';
+  info.style.display='block'; calcPcs();
+}
+function calcPcs(){ const qty=parseFloat(document.getElementById('rec-qty').value)||0; const unit=document.getElementById('rec-unit').value; const id=document.getElementById('rec-sku').value; const conv=document.getElementById('rec-convert'); if(unit==='case'&&id&&skus[id]){conv.textContent='= '+(qty*(skus[id].piecesPerCase||1))+' ชิ้น';conv.style.display='block';}else{conv.style.display='none';} }
+function getPcs(){ const qty=parseFloat(document.getElementById('rec-qty').value)||0; const unit=document.getElementById('rec-unit').value; const id=document.getElementById('rec-sku').value; if(unit==='case'&&id&&skus[id]) return qty*(skus[id].piecesPerCase||1); return qty; }
+function setPlatform(p,el){ curPlatform=p; document.querySelectorAll('.plat-btn').forEach(b=>b.classList.remove('active')); el.classList.add('active'); const o=document.getElementById('plat-other'); o.style.display=p==='other'?'block':'none'; if(p!=='other') o.value=''; }
+function getPlatLabel(){ if(!curPlatform) return ''; if(curPlatform==='other') return document.getElementById('plat-other').value.trim()||'อื่นๆ'; return {shopee:'Shopee',lazada:'Lazada',tiktok:'TikTok',facebook:'Facebook',line:'LINE'}[curPlatform]||curPlatform; }
+async function submitRec(){
+  const skuId=document.getElementById('rec-sku').value;
+  const qty=parseFloat(document.getElementById('rec-qty').value);
+  const date=document.getElementById('rec-date').value;
+  const note=document.getElementById('rec-note').value.trim();
+  if(!skuId){toast('กรุณาเลือกสินค้า','error');return;}
+  if(!qty||qty<=0){toast('กรุณากรอกจำนวน','error');return;}
+  if(!date){toast('กรุณากรอกวันที่','error');return;}
+  const pieces=getPcs(); const platform=recType==='out'?getPlatLabel():'';
+  const rec={skuId,type:recType,qty,unit:document.getElementById('rec-unit').value,pieces,date,note,platform,user,createdAt:Date.now()};
+  try {
+    const key=await apiPost(rp()+'/movements',rec);
+    movements[key]=rec; movArr=Object.entries(movements).sort((a,b)=>b[1].createdAt-a[1].createdAt);
+    filterHist(); updateDash();
+    toast('✅ บันทึกสำเร็จ','success');
+    document.getElementById('rec-qty').value=''; document.getElementById('rec-note').value='';
+    curPlatform=''; document.querySelectorAll('.plat-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('plat-other').style.display='none'; document.getElementById('rec-convert').style.display='none';
+    setDefDate(); lastHash.m='';
+    showPage('dash',document.querySelectorAll('.nav-btn')[0]);
+  } catch(e){toast('เกิดข้อผิดพลาด: '+e.message,'error');}
+}
+
+function openEdit(id){
+  editingId=id; const m=movements[id]; if(!m) return;
+  const dt=m.date?new Date(m.date):new Date();
+  const local=new Date(dt.getTime()-dt.getTimezoneOffset()*60000);
+  document.getElementById('e-qty').value=m.pieces;
+  document.getElementById('e-date').value=local.toISOString().slice(0,16);
+  document.getElementById('e-note').value=m.note||'';
+  document.getElementById('e-reason').value='';
+  const hist=m.editHistory||[];
+  const sec=document.getElementById('e-hist-sec');
+  const hl=document.getElementById('e-hist-list');
+  if(hist.length>0){
+    sec.style.display='block';
+    hl.innerHTML=hist.map((h,i)=>{
+      const d=new Date(h.editedAt);
+      const ds=d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+      return '<div class="edit-hist-item">'
+        +'<div style="display:flex;justify-content:space-between;"><span class="hist-num">ครั้งที่ '+(i+1)+' — '+ds+'</span><span class="hist-by">โดย: '+(h.editedBy||'-')+'</span></div>'
+        +'<div class="hist-prev">ก่อน: <strong>'+h.prevPieces+' ชิ้น</strong>'+(h.prevNote?' · '+h.prevNote:'')+'</div>'
+        +(h.reason?'<div class="hist-reason">เหตุผล: '+h.reason+'</div>':'')
+        +'</div>';
+    }).join('');
+  } else { sec.style.display='none'; }
+  document.getElementById('overlay-edit').classList.add('open');
+}
+function closeEdit(){ document.getElementById('overlay-edit').classList.remove('open'); editingId=null; }
+function closeEditBg(e){ if(e.target===document.getElementById('overlay-edit')) closeEdit(); }
+async function saveEdit(){
+  if(!editingId) return;
+  const qty=parseFloat(document.getElementById('e-qty').value);
+  const date=document.getElementById('e-date').value;
+  const note=document.getElementById('e-note').value.trim();
+  const reason=document.getElementById('e-reason').value.trim();
+  if(!qty||qty<=0){toast('กรุณากรอกจำนวน','error');return;}
+  if(!reason){toast('กรุณากรอกเหตุผล','error');return;}
+  const m=movements[editingId];
+  const hist=[...(m.editHistory||[])];
+  hist.push({prevPieces:m.pieces,prevDate:m.date,prevNote:m.note,editedBy:user,editedAt:Date.now(),reason});
+  try {
+    const upd={pieces:qty,date,note,editHistory:hist,lastEditedBy:user,lastEditedAt:Date.now()};
+    await apiPatch(rp()+'/movements/'+editingId,upd);
+    movements[editingId]=Object.assign({},m,upd);
+    movArr=Object.entries(movements).sort((a,b)=>b[1].createdAt-a[1].createdAt);
+    filterHist(); updateDash();
+    toast('✅ แก้ไขสำเร็จ','success'); closeEdit(); lastHash.m='';
+  } catch(e){toast('เกิดข้อผิดพลาด','error');}
+}
+async function deleteRec(){
+  if(!editingId) return;
+  if(!confirm('ต้องการลบรายการนี้?')) return;
+  try {
+    await apiDel(rp()+'/movements/'+editingId);
+    delete movements[editingId]; movArr=Object.entries(movements).sort((a,b)=>b[1].createdAt-a[1].createdAt);
+    filterHist(); updateDash();
+    toast('🗑 ลบแล้ว',''); closeEdit(); lastHash.m='';
+  } catch(e){toast('เกิดข้อผิดพลาด','error');}
+}
+
+function renderProds(){
+  const q=(document.getElementById('prod-q')?.value||'').toLowerCase();
+  const el=document.getElementById('prod-list');
+  const sm=computeStock();
+  const ents=Object.entries(skus).filter(([,s])=>!q||(s.name||'').toLowerCase().includes(q)||(s.unitSku||'').toLowerCase().includes(q));
+  if(!ents.length){el.innerHTML='<div class="empty-state">ยังไม่มีสินค้า<br>กด "+ เพิ่ม" เพื่อเริ่มต้น</div>';return;}
+  el.innerHTML=ents.map(([id,s],i)=>{
+    const stock=sm[id]||0;
+    const cs=s.piecesPerCase>1?Math.floor(stock/s.piecesPerCase):null;
+    return '<div class="prod-row" onclick="openSkuModal(\''+id+'\')"><div class="prod-icon"><svg width="18" height="18" fill="none" stroke="'+clrs[i%clrs.length]+'" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div>'
+      +'<div class="prod-body"><div class="prod-name">'+s.name+'</div><div class="prod-sku-text">'+(s.unitSku||'-')+(s.caseSku?' · '+s.caseSku:'')+'</div></div>'
+      +'<div class="prod-right"><div class="prod-stock-num">'+stock+'</div><div class="prod-case-text">ชิ้น'+(cs!==null?' / '+cs+' ลัง':'')+'</div></div>'
+      +'<div style="color:var(--text3);font-size:18px;margin-left:4px;">›</div></div>';
+  }).join('');
+}
+function updateSkuSel(){
+  const sel=document.getElementById('rec-sku');
+  if(sel) sel.innerHTML='<option value="">-- เลือกสินค้า --</option>'+Object.entries(skus).map(([id,s])=>'<option value="'+id+'">'+s.name+' ('+s.unitSku+')</option>').join('');
+}
+
+function openSkuModal(id){
+  editingSkuId=id||null;
+  const s=id?skus[id]:null;
+  document.getElementById('sku-title').textContent=s?'✏️ แก้ไขสินค้า':'➕ เพิ่มสินค้า';
+  document.getElementById('s-name').value=s?.name||'';
+  document.getElementById('s-unit').value=s?.unitSku||'';
+  document.getElementById('s-case').value=s?.caseSku||'';
+  document.getElementById('s-ppc').value=s?.piecesPerCase||1;
+  document.getElementById('s-cat').value=s?.category||'';
+  document.getElementById('overlay-sku').classList.add('open');
+}
+function closeSku(){ document.getElementById('overlay-sku').classList.remove('open'); editingSkuId=null; }
+function closeSkuBg(e){ if(e.target===document.getElementById('overlay-sku')) closeSku(); }
+async function saveSku(){
+  const name=document.getElementById('s-name').value.trim();
+  const unitSku=document.getElementById('s-unit').value.trim();
+  const caseSku=document.getElementById('s-case').value.trim();
+  const ppc=parseInt(document.getElementById('s-ppc').value)||1;
+  const cat=document.getElementById('s-cat').value.trim();
+  if(!name){toast('กรุณากรอกชื่อ','error');return;}
+  if(!unitSku){toast('กรุณากรอก SKU ชิ้น','error');return;}
+  const data={name,unitSku,caseSku,piecesPerCase:ppc,category:cat,updatedAt:Date.now()};
+  const skuId=editingSkuId||('sku_'+Date.now());
+  try {
+    await apiPut(rp()+'/skus/'+skuId,data);
+    skus[skuId]=data; renderProds(); updateSkuSel(); updateDash();
+    toast(editingSkuId?'✅ แก้ไขแล้ว':'✅ เพิ่มแล้ว','success');
+    closeSku(); lastHash.s='';
+  } catch(e){toast('เกิดข้อผิดพลาด','error');}
+}
+
+function toast(msg,type){
+  const w=document.getElementById('toast-wrap');
+  const t=document.createElement('div');
+  t.className='toast'+(type?' '+type:'');
+  t.textContent=msg;
+  w.innerHTML=''; w.appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';t.style.transform='translateY(-8px)';t.style.transition='.3s';setTimeout(()=>t.remove(),300);},2500);
+}
+
+document.getElementById('login-room').addEventListener('input',function(){ this.value=this.value.toUpperCase().replace(/[^A-Z0-9_-]/g,''); });
+document.getElementById('login-name').addEventListener('keydown',e=>{if(e.key==='Enter') doLogin();});
+document.getElementById('login-room').addEventListener('keydown',e=>{if(e.key==='Enter') doLogin();});
+window.addEventListener('load',()=>{ if(!autoLogin()) document.getElementById('login-screen').style.display='flex'; });
+</script>
+
+</body>
+</html>
