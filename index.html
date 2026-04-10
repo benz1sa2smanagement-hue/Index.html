@@ -184,6 +184,8 @@ html, body { height: 100%; font-family: 'Sarabun', -apple-system, sans-serif; ba
 .val-num { font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 700; line-height: 1; }
 .val-sub { font-size: 10px; color: var(--text3); margin-top: 2px; }
 .chart-box { position: relative; width: 100%; display: block; }
+.chart-box canvas { display: block; width: 100% !important; }
+.card-chart { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); }
 .plat-tbl-row { display: flex; align-items: center; padding: 8px 14px; border-bottom: 0.5px solid var(--border); gap: 10px; background: var(--surface); }
 .plat-tbl-row:last-child { border-bottom: none; }
 
@@ -411,8 +413,8 @@ html, body { height: 100%; font-family: 'Sarabun', -apple-system, sans-serif; ba
 
       <!-- Monthly -->
       <div class="sec-lbl">สรุปรายเดือน</div>
-      <div class="card card-pad">
-        <div class="chart-box" style="height:180px;"><canvas id="ch-monthly"></canvas></div>
+      <div class="card-chart card-pad">
+        <div class="chart-box" style="height:180px;width:100%;"><canvas id="ch-monthly" style="width:100%;height:100%;"></canvas></div>
       </div>
     </div>
   </div>
@@ -571,7 +573,19 @@ function showPg(name,el){
   document.getElementById('page-'+name).classList.add('active');
   if(el&&el.classList.contains('nb'))el.classList.add('active');
   if(name==='record')setDefDate();
-  if(name==='reports')requestAnimationFrame(()=>setTimeout(renderReports,60));
+  if(name==='reports'){
+    // double rAF: รอ 2 รอบ paint ให้ canvas มีขนาดจริง (จำเป็นสำหรับ iOS Safari)
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      destroyAllCharts();
+      renderReports();
+    }));
+  }
+}
+function destroyAllCharts(){
+  if(chPlatQty){chPlatQty.destroy();chPlatQty=null;}
+  if(chDeduct){chDeduct.destroy();chDeduct=null;}
+  if(chSkuVal){chSkuVal.destroy();chSkuVal=null;}
+  if(chMonthly){chMonthly.destroy();chMonthly=null;}
 }
 
 function computeStock(){
@@ -894,22 +908,34 @@ function renderPlatChart(){
     if(!lbls.length){tbl.innerHTML='<div class="empty-st" style="font-size:13px;">ยังไม่มีข้อมูลการจ่ายออก</div>';}
     else{
       const totalQ=qtys.reduce((a,b)=>a+b,0)||1;
-      tbl.innerHTML=lbls.map((p,i)=>'<div class="plat-tbl-row">'
-        +'<div style="width:8px;height:8px;border-radius:50%;background:'+pc[i%pc.length]+';flex-shrink:0;"></div>'
-        +'<div style="flex:1;font-size:14px;font-weight:600;color:var(--text);">'+p+'</div>'
-        +'<div style="font-family:\'IBM Plex Mono\',monospace;font-size:13px;font-weight:700;color:'+pc[i%pc.length]+';">'+pd[p].qty+' ชิ้น</div>'
-        +'<div style="font-size:12px;color:var(--green);margin-left:8px;">'+fmtB(pd[p].val)+'</div>'
-        +'<div style="font-size:11px;color:var(--text3);margin-left:6px;">'+Math.round(pd[p].qty/totalQ*100)+'%</div>'
-        +'</div>').join('');
+      tbl.innerHTML=lbls.map((p,i)=>{
+        const pct=Math.round(pd[p].qty/totalQ*100);
+        return '<div style="padding:12px 16px;border-bottom:0.5px solid var(--border);background:var(--surface);">'
+          +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">'
+          +'<div style="display:flex;align-items:center;gap:8px;"><div style="width:10px;height:10px;border-radius:50%;background:'+pc[i%pc.length]+';flex-shrink:0;"></div>'
+          +'<span style="font-size:14px;font-weight:700;">'+p+'</span></div>'
+          +'<span style="font-size:12px;color:var(--text2);">'+pct+'%</span></div>'
+          +'<div style="display:flex;justify-content:space-between;margin-bottom:6px;">'
+          +'<span style="font-size:13px;color:'+pc[i%pc.length]+';font-weight:700;font-family:\'IBM Plex Mono\',monospace;">'+pd[p].qty+' ชิ้น</span>'
+          +'<span style="font-size:13px;color:var(--green);font-weight:700;">'+fmtB(pd[p].val)+'</span></div>'
+          +'<div style="background:var(--surface2);border-radius:4px;height:5px;overflow:hidden;">'
+          +'<div style="width:'+pct+'%;height:100%;background:'+pc[i%pc.length]+';border-radius:4px;"></div></div>'
+          +'</div>';
+      }).join('');
     }
   }
   const _pEl=document.getElementById('ch-plat-qty');
   if(chPlatQty){chPlatQty.destroy();chPlatQty=null;}
   if(_pEl&&lbls.length){
-    _pEl.style.width='100%';
+    // force parent และ canvas ให้มีขนาดก่อน init
+    const _pBox=_pEl.parentElement;
+    const _pW=_pBox.offsetWidth||window.innerWidth-48;
+    _pEl.width=_pW;_pEl.height=220;
+    _pEl.style.width=_pW+'px';_pEl.style.height='220px';
     const ctx=_pEl.getContext('2d');
     chPlatQty=new Chart(ctx,{type:'doughnut',data:{labels:lbls,datasets:[{data:qtys,backgroundColor:pc.slice(0,lbls.length),borderWidth:2,borderColor:'#fff'}]},
-      options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{position:'bottom',labels:{font:{family:'Sarabun',size:11},padding:8,boxWidth:10,usePointStyle:true}}}}});
+      options:{responsive:true,maintainAspectRatio:false,cutout:'55%',
+        plugins:{legend:{position:'bottom',labels:{font:{family:'Sarabun',size:11},padding:8,boxWidth:10,usePointStyle:true}}}}});
   }
 }
 function renderDeductChart(){
@@ -918,7 +944,10 @@ function renderDeductChart(){
   const ents=Object.entries(dd).sort((a,b)=>b[1]-a[1]).slice(0,6);
   const _dEl=document.getElementById('ch-deduct');
   if(!_dEl)return;if(chDeduct){chDeduct.destroy();chDeduct=null;}
-  _dEl.style.width='100%';const ctx=_dEl.getContext('2d');
+  const _dW=_dEl.parentElement.offsetWidth||window.innerWidth-48;
+  _dEl.width=_dW;_dEl.height=200;
+  _dEl.style.width=_dW+'px';_dEl.style.height='200px';
+  const ctx=_dEl.getContext('2d');
   const c=['#ff3b30','#ff9500','#ff6b35','#34c759','#007aff','#af52de'];
   chDeduct=new Chart(ctx,{type:'bar',
     data:{labels:ents.map(([id])=>skus[id]?.name||id),datasets:[{label:'ตัดสต็อค(ชิ้น)',data:ents.map(([,v])=>v),backgroundColor:c.map(x=>x+'44'),borderColor:c,borderWidth:2,borderRadius:5}]},
@@ -929,7 +958,10 @@ function renderSkuValChart(){
   const ents=Object.entries(sm).map(([id,qty])=>{const s=skus[id]||{};return{id,name:s.name||id,cost:qty*(s.costPrice||0),price:qty*(s.salePrice||0)};}).filter(e=>e.cost>0||e.price>0).sort((a,b)=>b.price-a.price).slice(0,6);
   const _sEl=document.getElementById('ch-skuval');
   if(!_sEl)return;if(chSkuVal){chSkuVal.destroy();chSkuVal=null;}
-  _sEl.style.width='100%';const ctx=_sEl.getContext('2d');
+  const _sW=_sEl.parentElement.offsetWidth||window.innerWidth-48;
+  _sEl.width=_sW;_sEl.height=200;
+  _sEl.style.width=_sW+'px';_sEl.style.height='200px';
+  const ctx=_sEl.getContext('2d');
   chSkuVal=new Chart(ctx,{type:'bar',
     data:{labels:ents.map(e=>e.name),datasets:[
       {label:'ต้นทุน(฿)',data:ents.map(e=>e.cost),backgroundColor:'#ff950044',borderColor:'#ff9500',borderWidth:2,borderRadius:4},
@@ -963,7 +995,10 @@ function renderMonthlyChart(){
   const keys=Object.keys(months).sort().slice(-6);
   const _mEl=document.getElementById('ch-monthly');
   if(!_mEl)return;if(chMonthly){chMonthly.destroy();chMonthly=null;}
-  _mEl.style.width='100%';const ctx=_mEl.getContext('2d');
+  const _mW=_mEl.parentElement.offsetWidth||window.innerWidth-48;
+  _mEl.width=_mW;_mEl.height=180;
+  _mEl.style.width=_mW+'px';_mEl.style.height='180px';
+  const ctx=_mEl.getContext('2d');
   chMonthly=new Chart(ctx,{type:'line',data:{labels:keys,datasets:[
     {label:'รับเข้า',data:keys.map(k=>months[k]?.in||0),borderColor:'#34c759',backgroundColor:'#34c75915',tension:.4,fill:true,pointRadius:3},
     {label:'จ่ายออก',data:keys.map(k=>months[k]?.out||0),borderColor:'#ff3b30',backgroundColor:'#ff3b3015',tension:.4,fill:true,pointRadius:3}
