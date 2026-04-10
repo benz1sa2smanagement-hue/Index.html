@@ -92,6 +92,7 @@ html, body { height: 100%; font-family: 'Sarabun', -apple-system, sans-serif; ba
 
 /* ── CARDS ── */
 .card { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; }
+.card-scroll { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); overflow: visible; }
 .card-pad { padding: 14px 16px; }
 
 /* ── STATS ── */
@@ -182,7 +183,7 @@ html, body { height: 100%; font-family: 'Sarabun', -apple-system, sans-serif; ba
 .val-label { font-size: 11px; color: var(--text2); font-weight: 600; margin-bottom: 4px; }
 .val-num { font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 700; line-height: 1; }
 .val-sub { font-size: 10px; color: var(--text3); margin-top: 2px; }
-.chart-box { position: relative; }
+.chart-box { position: relative; width: 100%; display: block; }
 .plat-tbl-row { display: flex; align-items: center; padding: 8px 14px; border-bottom: 0.5px solid var(--border); gap: 10px; background: var(--surface); }
 .plat-tbl-row:last-child { border-bottom: none; }
 
@@ -226,6 +227,16 @@ html, body { height: 100%; font-family: 'Sarabun', -apple-system, sans-serif; ba
 @keyframes tin { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
 @keyframes slideUp { from{transform:translateY(60px);opacity:0} to{transform:translateY(0);opacity:1} }
 
+/* ── ADJ DIR ── */
+.adj-dir-wrap { display: none; flex-direction: column; gap: 8px; padding: 12px 16px; background: var(--surface); border-bottom: 0.5px solid var(--border); }
+.adj-dir-row { display: flex; gap: 8px; }
+.adj-dir-btn { flex: 1; padding: 11px; border-radius: var(--radius-sm); border: 2px solid var(--border); background: var(--surface); font-size: 15px; font-weight: 700; font-family: 'Sarabun', sans-serif; cursor: pointer; transition: all .15s; color: var(--text2); }
+.adj-dir-btn.plus.sel { border-color: var(--green); background: var(--green-light); color: var(--green); }
+.adj-dir-btn.minus.sel { border-color: var(--red); background: var(--red-light); color: var(--red); }
+.adj-preview { font-size: 13px; font-weight: 700; padding: 8px 12px; border-radius: var(--radius-sm); display: none; }
+.adj-preview.plus { background: var(--green-light); color: var(--green); }
+.adj-preview.minus { background: var(--red-light); color: var(--red); }
+
 /* ── MISC ── */
 .loading-row { display: flex; align-items: center; justify-content: center; padding: 30px; gap: 10px; color: var(--text2); font-size: 14px; background: var(--surface); }
 .spinner { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; }
@@ -237,7 +248,7 @@ html, body { height: 100%; font-family: 'Sarabun', -apple-system, sans-serif; ba
 <body>
 
 <!-- LOGIN -->
-<div id="login-screen">
+<div id="login-screen" style="display:none;">
   <div class="login-logo">StockFlow</div>
   <div class="login-tagline">ระบบจัดการคลังสินค้า</div>
   <div class="login-form">
@@ -278,9 +289,9 @@ html, body { height: 100%; font-family: 'Sarabun', -apple-system, sans-serif; ba
         <div class="sblock" style="background:var(--red-light);border-color:#fca5a5;"><div class="slabel" style="color:var(--red);">จ่ายออกวันนี้</div><div class="sval" style="color:var(--red);" id="s-out">0</div><div class="sunit">ชิ้น</div></div>
       </div>
       <div class="sec-lbl">สต็อคคงเหลือ</div>
-      <div class="card" id="dash-stock"><div class="loading-row"><div class="spinner"></div>กำลังโหลด...</div></div>
+      <div class="card-scroll" id="dash-stock"><div class="loading-row"><div class="spinner"></div>กำลังโหลด...</div></div>
       <div class="sec-lbl">รายการล่าสุด</div>
-      <div class="card" id="dash-recent"><div class="loading-row"><div class="spinner"></div>กำลังโหลด...</div></div>
+      <div class="card-scroll" id="dash-recent"><div class="loading-row"><div class="spinner"></div>กำลังโหลด...</div></div>
     </div>
 
     <!-- HISTORY -->
@@ -316,6 +327,14 @@ html, body { height: 100%; font-family: 'Sarabun', -apple-system, sans-serif; ba
         <div class="frow"><label>หมายเหตุ</label><input type="text" id="rec-note" placeholder="ไม่บังคับ"></div>
       </div>
       <div class="convert-bar" id="rec-conv">= 0 ชิ้น</div>
+      <div class="card adj-dir-wrap" id="adj-dir-wrap">
+        <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:2px;">ทิศทางการปรับ</div>
+        <div class="adj-dir-row">
+          <button class="adj-dir-btn plus sel" id="adj-plus" onclick="setAdjDir('plus')">＋ เพิ่มสต็อค</button>
+          <button class="adj-dir-btn minus" id="adj-minus" onclick="setAdjDir('minus')">－ ลดสต็อค</button>
+        </div>
+        <div class="adj-preview" id="adj-preview"></div>
+      </div>
       <div id="rec-sku-info" style="display:none;" class="sku-info-box">
         <div class="sib-item"><div class="sib-label">SKU ชิ้น</div><div class="sib-val" id="i-unit">-</div></div>
         <div class="sib-item"><div class="sib-label">SKU ลัง</div><div class="sib-val" id="i-case">-</div></div>
@@ -368,7 +387,7 @@ html, body { height: 100%; font-family: 'Sarabun', -apple-system, sans-serif; ba
       <div class="card">
         <div class="card-pad" style="padding-bottom:8px;">
           <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;">ชิ้นต่อช่องทาง</div>
-          <div class="chart-box" style="height:180px;"><canvas id="ch-plat-qty"></canvas></div>
+          <div class="chart-box" style="height:220px;"><canvas id="ch-plat-qty"></canvas></div>
         </div>
         <div id="plat-tbl"></div>
       </div>
@@ -377,13 +396,13 @@ html, body { height: 100%; font-family: 'Sarabun', -apple-system, sans-serif; ba
       <div class="sec-lbl">การตัดสต็อค</div>
       <div class="card card-pad">
         <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;">สินค้าที่จ่ายออกมากสุด</div>
-        <div class="chart-box" style="height:180px;"><canvas id="ch-deduct"></canvas></div>
+        <div class="chart-box" style="height:200px;"><canvas id="ch-deduct"></canvas></div>
       </div>
 
       <!-- SKU value -->
       <div class="sec-lbl">มูลค่าสต็อคแต่ละสินค้า</div>
       <div class="card card-pad">
-        <div class="chart-box" style="height:180px;"><canvas id="ch-skuval"></canvas></div>
+        <div class="chart-box" style="height:200px;"><canvas id="ch-skuval"></canvas></div>
       </div>
 
       <!-- Stock list -->
@@ -523,7 +542,8 @@ async function poll(){
     setOnline(true);
     const sh=JSON.stringify(s),mh=JSON.stringify(m);
     if(sh!==lastHash.s){lastHash.s=sh;skus=s||{};renderProds();updateSkuSel();updateDash();}
-    if(mh!==lastHash.m){lastHash.m=mh;movements=m||{};movArr=Object.entries(movements).sort((a,b)=>b[1].createdAt-a[1].createdAt);filterHist();updateDash();}
+    if(mh!==lastHash.m){lastHash.m=mh;movements=m||{};movArr=Object.entries(movements).sort((a,b)=>b[1].createdAt-a[1].createdAt);filterHist();updateDash();
+      if(document.getElementById('page-reports')?.classList.contains('active'))requestAnimationFrame(()=>setTimeout(renderReports,60));}
   }catch(e){setOnline(false);}
 }
 function startPoll(){if(pollTimer)clearInterval(pollTimer);poll();pollTimer=setInterval(poll,3000);}
@@ -551,14 +571,15 @@ function showPg(name,el){
   document.getElementById('page-'+name).classList.add('active');
   if(el&&el.classList.contains('nb'))el.classList.add('active');
   if(name==='record')setDefDate();
-  if(name==='reports')renderReports();
+  if(name==='reports')requestAnimationFrame(()=>setTimeout(renderReports,60));
 }
 
 function computeStock(){
   const map={};
   Object.values(movements).forEach(m=>{
     if(!map[m.skuId])map[m.skuId]=0;
-    if(m.type==='in'||m.type==='adj')map[m.skuId]+=m.pieces;
+    if(m.type==='in')map[m.skuId]+=m.pieces;
+    else if(m.type==='adj'){if(m.adjDir==='minus')map[m.skuId]-=m.pieces;else map[m.skuId]+=m.pieces;}
     else if(m.type==='out')map[m.skuId]-=m.pieces;
   });
   return map;
@@ -613,7 +634,7 @@ function movRowHtml(id,m,compact){
   const s=skus[m.skuId]||{};
   const icon=m.type==='in'?'📥':m.type==='out'?'📤':'✏️';
   const cls=m.type==='in'?'in':m.type==='out'?'out':'adj';
-  const pfx=m.type==='in'?'+':m.type==='out'?'-':'±';
+  const pfx=m.type==='in'?'+':m.type==='out'?'−':(m.adjDir==='minus'?'−':'+');
   const dt=m.date?new Date(m.date):null;
   const ds=dt?(dt.getDate()+'/'+(dt.getMonth()+1)+(compact?'':'/'+dt.getFullYear())+' '+String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0')):'-';
   const editTag=m.editHistory?.length?'<span class="edited-chip">แก้ไข ×'+m.editHistory.length+'</span>':'';
@@ -623,7 +644,24 @@ function movRowHtml(id,m,compact){
     +'<div class="row-qty '+cls+'">'+pfx+m.pieces+'</div></div>';
 }
 
-function setRType(t,el){recType=t;document.querySelectorAll('.topt').forEach(b=>b.classList.remove('active'));el.classList.add('active');document.getElementById('plat-sec').style.display=t==='out'?'block':'none';if(t!=='out'){curPlat='';document.querySelectorAll('.pbtn').forEach(b=>b.classList.remove('active'));document.getElementById('plat-other').style.display='none';}}
+function setRType(t,el){
+  recType=t;
+  document.querySelectorAll('.topt').forEach(b=>b.classList.remove('active'));el.classList.add('active');
+  document.getElementById('plat-sec').style.display=t==='out'?'block':'none';
+  const adjWrap=document.getElementById('adj-dir-wrap');
+  adjWrap.style.display=t==='adj'?'flex':'none';
+  if(t==='adj'){setAdjDir('plus');}
+  if(t!=='out'){curPlat='';document.querySelectorAll('.pbtn').forEach(b=>b.classList.remove('active'));document.getElementById('plat-other').style.display='none';}
+  calcPcs();
+}
+let curAdjDir='plus';
+function setAdjDir(dir){
+  curAdjDir=dir;
+  const bp=document.getElementById('adj-plus'),bm=document.getElementById('adj-minus');
+  bp.className='adj-dir-btn plus'+(dir==='plus'?' sel':'');
+  bm.className='adj-dir-btn minus'+(dir==='minus'?' sel':'');
+  calcPcs();
+}
 function setDefDate(){const now=new Date();const local=new Date(now.getTime()-now.getTimezoneOffset()*60000);const el=document.getElementById('rec-date');if(el)el.value=local.toISOString().slice(0,16);}
 function onSkuCh(){
   const id=document.getElementById('rec-sku').value;
@@ -636,7 +674,24 @@ function onSkuCh(){
   document.getElementById('i-stock').textContent=stock+' ชิ้น';
   info.style.display='flex';calcPcs();
 }
-function calcPcs(){const qty=parseFloat(document.getElementById('rec-qty').value)||0;const unit=document.getElementById('rec-unit').value;const id=document.getElementById('rec-sku').value;const conv=document.getElementById('rec-conv');if(unit==='case'&&id&&skus[id]){conv.textContent='= '+(qty*(skus[id].piecesPerCase||1))+' ชิ้น';conv.style.display='block';}else{conv.style.display='none';}}
+function calcPcs(){
+  const qty=parseFloat(document.getElementById('rec-qty').value)||0;
+  const unit=document.getElementById('rec-unit').value;
+  const id=document.getElementById('rec-sku').value;
+  const conv=document.getElementById('rec-conv');
+  let pieces=qty;
+  if(unit==='case'&&id&&skus[id]){pieces=qty*(skus[id].piecesPerCase||1);conv.textContent='= '+pieces+' ชิ้น';conv.style.display='block';}else{conv.style.display='none';}
+  // adj preview
+  const prev=document.getElementById('adj-preview');
+  if(prev&&recType==='adj'&&qty>0){
+    const stock=id?(computeStock()[id]||0):0;
+    const after=curAdjDir==='plus'?stock+pieces:stock-pieces;
+    const sign=curAdjDir==='plus'?'+':'−';
+    prev.style.display='block';
+    prev.className='adj-preview '+curAdjDir;
+    prev.textContent=sign+pieces+' ชิ้น → สต็อคหลังปรับ: '+after+' ชิ้น';
+  }else if(prev){prev.style.display='none';}
+}
 function getPcs(){const qty=parseFloat(document.getElementById('rec-qty').value)||0;const unit=document.getElementById('rec-unit').value;const id=document.getElementById('rec-sku').value;if(unit==='case'&&id&&skus[id])return qty*(skus[id].piecesPerCase||1);return qty;}
 function setPlatform(p,el){curPlat=p;document.querySelectorAll('.pbtn').forEach(b=>b.classList.remove('active'));el.classList.add('active');const o=document.getElementById('plat-other');o.style.display=p==='other'?'block':'none';if(p!=='other')o.value='';}
 function getPlatLabel(){if(!curPlat)return'';if(curPlat==='other')return document.getElementById('plat-other').value.trim()||'อื่นๆ';return{shopee:'Shopee',lazada:'Lazada',tiktok:'TikTok',facebook:'Facebook',line:'LINE'}[curPlat]||curPlat;}
@@ -649,7 +704,8 @@ async function submitRec(){
   if(!qty||qty<=0){toast('กรุณากรอกจำนวน','error');return;}
   if(!date){toast('กรุณากรอกวันที่','error');return;}
   const pieces=getPcs();const platform=recType==='out'?getPlatLabel():'';
-  const rec={skuId,type:recType,qty,unit:document.getElementById('rec-unit').value,pieces,date,note,platform,user,createdAt:Date.now()};
+  const adjDir=recType==='adj'?curAdjDir:undefined;
+  const rec={skuId,type:recType,qty,unit:document.getElementById('rec-unit').value,pieces,date,note,platform,...(adjDir?{adjDir}:{}),user,createdAt:Date.now()};
   try{
     const key=await apiPost(rp()+'/movements',rec);
     movements[key]=rec;movArr=Object.entries(movements).sort((a,b)=>b[1].createdAt-a[1].createdAt);
@@ -658,6 +714,8 @@ async function submitRec(){
     document.getElementById('rec-qty').value='';document.getElementById('rec-note').value='';
     curPlat='';document.querySelectorAll('.pbtn').forEach(b=>b.classList.remove('active'));
     document.getElementById('plat-other').style.display='none';document.getElementById('rec-conv').style.display='none';
+    const _ap=document.getElementById('adj-preview');if(_ap)_ap.style.display='none';
+    if(recType==='adj')setAdjDir('plus');
     setDefDate();lastHash.m='';
     showPg('dash',document.querySelectorAll('.nb')[0]);
   }catch(e){toast('เกิดข้อผิดพลาด: '+e.message,'error');}
@@ -845,19 +903,22 @@ function renderPlatChart(){
         +'</div>').join('');
     }
   }
-  const ctx=document.getElementById('ch-plat-qty')?.getContext('2d');
-  if(chPlatQty)chPlatQty.destroy();
-  if(ctx&&lbls.length){
+  const _pEl=document.getElementById('ch-plat-qty');
+  if(chPlatQty){chPlatQty.destroy();chPlatQty=null;}
+  if(_pEl&&lbls.length){
+    _pEl.style.width='100%';
+    const ctx=_pEl.getContext('2d');
     chPlatQty=new Chart(ctx,{type:'doughnut',data:{labels:lbls,datasets:[{data:qtys,backgroundColor:pc.slice(0,lbls.length),borderWidth:2,borderColor:'#fff'}]},
-      options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'bottom',labels:{font:{family:'Sarabun',size:11},padding:6,boxWidth:10}}}}});
+      options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{position:'bottom',labels:{font:{family:'Sarabun',size:11},padding:8,boxWidth:10,usePointStyle:true}}}}});
   }
 }
 function renderDeductChart(){
   const dd={};
   Object.values(movements).forEach(m=>{if(m.type!=='out')return;if(!dd[m.skuId])dd[m.skuId]=0;dd[m.skuId]+=m.pieces;});
   const ents=Object.entries(dd).sort((a,b)=>b[1]-a[1]).slice(0,6);
-  const ctx=document.getElementById('ch-deduct')?.getContext('2d');
-  if(!ctx)return;if(chDeduct)chDeduct.destroy();
+  const _dEl=document.getElementById('ch-deduct');
+  if(!_dEl)return;if(chDeduct){chDeduct.destroy();chDeduct=null;}
+  _dEl.style.width='100%';const ctx=_dEl.getContext('2d');
   const c=['#ff3b30','#ff9500','#ff6b35','#34c759','#007aff','#af52de'];
   chDeduct=new Chart(ctx,{type:'bar',
     data:{labels:ents.map(([id])=>skus[id]?.name||id),datasets:[{label:'ตัดสต็อค(ชิ้น)',data:ents.map(([,v])=>v),backgroundColor:c.map(x=>x+'44'),borderColor:c,borderWidth:2,borderRadius:5}]},
@@ -866,8 +927,9 @@ function renderDeductChart(){
 function renderSkuValChart(){
   const sm=computeStock();
   const ents=Object.entries(sm).map(([id,qty])=>{const s=skus[id]||{};return{id,name:s.name||id,cost:qty*(s.costPrice||0),price:qty*(s.salePrice||0)};}).filter(e=>e.cost>0||e.price>0).sort((a,b)=>b.price-a.price).slice(0,6);
-  const ctx=document.getElementById('ch-skuval')?.getContext('2d');
-  if(!ctx)return;if(chSkuVal)chSkuVal.destroy();
+  const _sEl=document.getElementById('ch-skuval');
+  if(!_sEl)return;if(chSkuVal){chSkuVal.destroy();chSkuVal=null;}
+  _sEl.style.width='100%';const ctx=_sEl.getContext('2d');
   chSkuVal=new Chart(ctx,{type:'bar',
     data:{labels:ents.map(e=>e.name),datasets:[
       {label:'ต้นทุน(฿)',data:ents.map(e=>e.cost),backgroundColor:'#ff950044',borderColor:'#ff9500',borderWidth:2,borderRadius:4},
@@ -899,7 +961,9 @@ function renderMonthlyChart(){
   const months={};
   Object.values(movements).forEach(m=>{const k=(m.date||'').slice(0,7);if(!k)return;if(!months[k])months[k]={in:0,out:0};if(m.type==='in')months[k].in+=m.pieces;else if(m.type==='out')months[k].out+=m.pieces;});
   const keys=Object.keys(months).sort().slice(-6);
-  const ctx=document.getElementById('ch-monthly')?.getContext('2d');if(!ctx)return;if(chMonthly)chMonthly.destroy();
+  const _mEl=document.getElementById('ch-monthly');
+  if(!_mEl)return;if(chMonthly){chMonthly.destroy();chMonthly=null;}
+  _mEl.style.width='100%';const ctx=_mEl.getContext('2d');
   chMonthly=new Chart(ctx,{type:'line',data:{labels:keys,datasets:[
     {label:'รับเข้า',data:keys.map(k=>months[k]?.in||0),borderColor:'#34c759',backgroundColor:'#34c75915',tension:.4,fill:true,pointRadius:3},
     {label:'จ่ายออก',data:keys.map(k=>months[k]?.out||0),borderColor:'#ff3b30',backgroundColor:'#ff3b3015',tension:.4,fill:true,pointRadius:3}
