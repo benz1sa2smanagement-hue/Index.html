@@ -40,40 +40,158 @@ html, body { height: 100%; font-family: 'Sarabun', -apple-system, sans-serif; ba
 
 /* ── PASSCODE SCREEN ── */
 #passcode-screen {
-  position: fixed; inset: 0; background: var(--surface);
+  position: fixed; inset: 0;
+  background: linear-gradient(160deg, #0a0a12 0%, #0d1117 50%, #0f1623 100%);
   display: none; flex-direction: column; align-items: center; justify-content: center;
-  z-index: 9999; padding: 24px 20px;
-  padding-top: calc(var(--safe-top) + 24px);
+  z-index: 9999;
+  padding: 24px 28px;
+  padding-top: calc(var(--safe-top) + 16px);
+  padding-bottom: calc(var(--safe-bottom) + 16px);
+  gap: 0;
 }
-.pc-logo { font-family: 'IBM Plex Mono', monospace; font-size: 32px; font-weight: 600; color: var(--accent); letter-spacing: -1.5px; margin-bottom: 4px; }
-.pc-tagline { font-size: 14px; color: var(--text2); margin-bottom: 32px; }
-.pc-label { font-size: 15px; font-weight: 600; color: var(--text2); margin-bottom: 12px; text-align: center; }
-.pc-dots { display: flex; gap: 14px; margin-bottom: 24px; }
-.pc-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); background: var(--surface); transition: all .2s; }
-.pc-dot.filled { background: var(--accent); border-color: var(--accent); }
-.pc-dot.error { background: var(--red); border-color: var(--red); animation: shake .3s ease; }
-@keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-4px)} 40%,80%{transform:translateX(4px)} }
-.pc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; max-width: 300px; }
+
+/* subtle dot grid bg */
+#passcode-screen::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
+}
+
+.pc-logo {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 28px; font-weight: 600;
+  color: #fff; letter-spacing: -1px;
+  margin-bottom: 4px;
+  position: relative;
+}
+.pc-logo span { color: #007aff; }
+
+.pc-tagline {
+  font-size: 13px; color: rgba(255,255,255,0.38);
+  margin-bottom: 36px; letter-spacing: 0.3px;
+}
+
+.pc-label {
+  font-size: 14px; font-weight: 600;
+  color: rgba(255,255,255,0.55);
+  margin-bottom: 20px; text-align: center;
+  letter-spacing: 0.2px;
+}
+
+/* PIN display — shows digits */
+.pc-pin-display {
+  display: flex; gap: 10px;
+  margin-bottom: 32px;
+  height: 52px; align-items: center; justify-content: center;
+}
+.pc-pin-slot {
+  width: 44px; height: 52px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.06);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 24px; font-weight: 600;
+  color: #fff;
+  transition: all .18s cubic-bezier(.4,0,.2,1);
+  position: relative; overflow: hidden;
+}
+.pc-pin-slot.active {
+  border-color: rgba(0,122,255,0.6);
+  background: rgba(0,122,255,0.12);
+  box-shadow: 0 0 0 3px rgba(0,122,255,0.15);
+}
+.pc-pin-slot.filled {
+  border-color: rgba(0,122,255,0.4);
+  background: rgba(0,122,255,0.10);
+}
+.pc-pin-slot.error {
+  border-color: rgba(255,59,48,0.7);
+  background: rgba(255,59,48,0.12);
+  animation: shake .35s ease;
+  color: #ff3b30;
+}
+.pc-pin-slot .pin-char {
+  display: block;
+  animation: popIn .15s cubic-bezier(.34,1.56,.64,1);
+}
+.pc-pin-slot.cursor-blink::after {
+  content: '';
+  position: absolute;
+  width: 2px; height: 28px;
+  background: #007aff;
+  border-radius: 1px;
+  animation: blink 1s infinite;
+}
+.pc-pin-slot.filled.cursor-blink::after { display: none; }
+
+@keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes blink { 0%,49%{ opacity: 1; } 50%,100%{ opacity: 0; } }
+@keyframes shake {
+  0%,100%{ transform: translateX(0) }
+  15%{ transform: translateX(-6px) }
+  30%{ transform: translateX(6px) }
+  45%{ transform: translateX(-5px) }
+  60%{ transform: translateX(5px) }
+  75%{ transform: translateX(-3px) }
+  90%{ transform: translateX(3px) }
+}
+
+.pc-err {
+  font-size: 13px; font-weight: 600;
+  color: #ff3b30; text-align: center;
+  min-height: 18px; margin-bottom: 20px;
+  letter-spacing: 0.2px;
+}
+
+/* Numpad */
+.pc-pad {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 10px; width: 100%; max-width: 280px;
+}
 .pc-key {
-  height: 68px; border-radius: var(--radius); border: 1.5px solid var(--border);
-  background: var(--surface); font-size: 22px; font-family: 'IBM Plex Mono', monospace;
-  font-weight: 600; color: var(--text); cursor: pointer;
+  height: 66px; border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.07);
+  font-size: 24px; font-family: 'IBM Plex Mono', monospace;
+  font-weight: 500; color: #fff; cursor: pointer;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 1px; transition: background .1s, transform .1s;
-  -webkit-user-select: none;
+  gap: 1px; transition: background .1s, transform .12s, box-shadow .1s;
+  -webkit-user-select: none; backdrop-filter: blur(4px);
 }
-.pc-key:active { background: var(--surface2); transform: scale(.93); }
-.pc-key .pc-sub { font-size: 9px; font-family: 'Sarabun', sans-serif; letter-spacing: 1.5px; color: var(--text3); font-weight: 600; }
-.pc-key.del { font-size: 18px; background: var(--surface2); border-color: var(--surface2); }
-.pc-key.ok { background: var(--accent); border-color: var(--accent); color: #fff; }
-.pc-key.empty { background: transparent; border: none; cursor: default; pointer-events: none; }
-.pc-err { font-size: 13px; font-weight: 700; color: var(--red); text-align: center; min-height: 18px; margin-bottom: 4px; }
-.pc-hint { font-size: 12px; color: var(--text3); text-align: center; margin-top: 16px; }
+.pc-key:active { background: rgba(255,255,255,0.15); transform: scale(.92); }
+.pc-key .pc-sub {
+  font-size: 8px; font-family: 'Sarabun', sans-serif;
+  letter-spacing: 2px; color: rgba(255,255,255,0.3);
+  font-weight: 700; line-height: 1;
+}
+.pc-key.del {
+  font-size: 20px;
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.6);
+}
+.pc-key.empty {
+  background: transparent; border: none;
+  cursor: default; pointer-events: none;
+}
+.pc-hint {
+  font-size: 12px; color: rgba(255,255,255,0.22);
+  text-align: center; margin-top: 24px;
+  line-height: 1.6; max-width: 240px;
+}
 
 /* ── LOGIN SCREEN ── */
-#login-screen { position: fixed; inset: 0; background: var(--surface); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9998; padding: 24px 20px; padding-top: calc(var(--safe-top) + 24px); }
-.login-logo { font-family: 'IBM Plex Mono', monospace; font-size: 32px; font-weight: 600; color: var(--accent); letter-spacing: -1.5px; margin-bottom: 4px; }
-.login-tagline { font-size: 14px; color: var(--text2); margin-bottom: 36px; }
+#login-screen {
+  position: fixed; inset: 0; background: var(--surface);
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 9998; padding: 24px 20px;
+  padding-top: calc(var(--safe-top) + 24px);
+}
+.login-logo { font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 600; color: var(--accent); letter-spacing: -1px; margin-bottom: 4px; }
+.login-tagline { font-size: 14px; color: var(--text2); margin-bottom: 32px; }
 .login-form { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 12px; }
 .igroup { background: var(--surface); border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
 .irow { display: flex; align-items: center; padding: 0 16px; border-bottom: 0.5px solid var(--border); }
@@ -318,19 +436,24 @@ html, body { height: 100%; font-family: 'Sarabun', -apple-system, sans-serif; ba
 
 <!-- ── PASSCODE SCREEN ── -->
 <div id="passcode-screen">
-  <div class="pc-logo">StockFlow</div>
+  <div class="pc-logo">Stock<span>Flow</span></div>
   <div class="pc-tagline">ระบบจัดการคลังสินค้า</div>
-  <div class="pc-label">🔐 ใส่รหัสเข้าใช้งาน</div>
-  <div class="pc-dots" id="pc-dots">
-    <div class="pc-dot" id="d0"></div>
-    <div class="pc-dot" id="d1"></div>
-    <div class="pc-dot" id="d2"></div>
-    <div class="pc-dot" id="d3"></div>
-    <div class="pc-dot" id="d4"></div>
-    <div class="pc-dot" id="d5"></div>
+
+  <div class="pc-label">ใส่รหัส 6 หลัก</div>
+
+  <!-- PIN digit display -->
+  <div class="pc-pin-display" id="pc-pin-display">
+    <div class="pc-pin-slot" id="ps0"></div>
+    <div class="pc-pin-slot" id="ps1"></div>
+    <div class="pc-pin-slot" id="ps2"></div>
+    <div class="pc-pin-slot" id="ps3"></div>
+    <div class="pc-pin-slot" id="ps4"></div>
+    <div class="pc-pin-slot" id="ps5"></div>
   </div>
+
   <div class="pc-err" id="pc-err"></div>
-  <div class="pc-grid">
+
+  <div class="pc-pad">
     <button class="pc-key" onclick="pcKey('1')">1</button>
     <button class="pc-key" onclick="pcKey('2')">2<div class="pc-sub">ABC</div></button>
     <button class="pc-key" onclick="pcKey('3')">3<div class="pc-sub">DEF</div></button>
@@ -344,6 +467,7 @@ html, body { height: 100%; font-family: 'Sarabun', -apple-system, sans-serif; ba
     <button class="pc-key" onclick="pcKey('0')">0</button>
     <button class="pc-key del" onclick="pcDel()">⌫</button>
   </div>
+
   <div class="pc-hint">รหัสเดียวกัน = ข้อมูลคลังเดียวกัน<br>แชร์รหัสให้ทีมเพื่อเข้าถึงข้อมูลร่วมกัน</div>
 </div>
 
@@ -647,23 +771,48 @@ function hashCode(str) {
 function pcKey(d) {
   if (pcBuffer.length >= PC_LEN) return;
   pcBuffer += d;
-  updatePcDots();
-  if (pcBuffer.length === PC_LEN) setTimeout(confirmPasscode, 120);
+  updatePcDisplay();
+  if (pcBuffer.length === PC_LEN) setTimeout(confirmPasscode, 160);
 }
 
 function pcDel() {
   if (pcBuffer.length > 0) {
     pcBuffer = pcBuffer.slice(0, -1);
-    updatePcDots();
+    updatePcDisplay();
     document.getElementById('pc-err').textContent = '';
   }
 }
 
-function updatePcDots() {
+function updatePcDisplay() {
   for (let i = 0; i < PC_LEN; i++) {
-    const d = document.getElementById('d' + i);
-    d.className = 'pc-dot' + (i < pcBuffer.length ? ' filled' : '');
+    const slot = document.getElementById('ps' + i);
+    if (i < pcBuffer.length) {
+      // Filled — show digit
+      slot.className = 'pc-pin-slot filled';
+      slot.innerHTML = '<span class="pin-char">' + pcBuffer[i] + '</span>';
+    } else if (i === pcBuffer.length) {
+      // Active cursor
+      slot.className = 'pc-pin-slot active cursor-blink';
+      slot.innerHTML = '';
+    } else {
+      // Empty
+      slot.className = 'pc-pin-slot';
+      slot.innerHTML = '';
+    }
   }
+}
+
+function showPcError(msg) {
+  document.getElementById('pc-err').textContent = msg;
+  for (let i = 0; i < PC_LEN; i++) {
+    const slot = document.getElementById('ps' + i);
+    slot.className = 'pc-pin-slot error';
+    slot.innerHTML = '<span class="pin-char">' + (pcBuffer[i] || '·') + '</span>';
+  }
+  setTimeout(() => {
+    pcBuffer = '';
+    updatePcDisplay();
+  }, 700);
 }
 
 function confirmPasscode() {
@@ -672,7 +821,7 @@ function confirmPasscode() {
   currentWsKey = wsKey;
   currentPasscode = pcBuffer;
   pcBuffer = '';
-  updatePcDots();
+  updatePcDisplay();
   document.getElementById('passcode-screen').style.display = 'none';
   document.getElementById('ws-display').textContent = 'WS-' + wsKey;
   const savedUser = localStorage.getItem('sf_user_' + wsKey);
@@ -689,7 +838,7 @@ function backToPasscode() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('passcode-screen').style.display = 'flex';
   pcBuffer = '';
-  updatePcDots();
+  updatePcDisplay();
   document.getElementById('pc-err').textContent = '';
   currentWsKey = '';
   currentPasscode = '';
@@ -787,7 +936,8 @@ async function pollWarehouseLabels() {
 
 function startWhPoll() {
   if (whPollTimer) clearInterval(whPollTimer);
-  whPollTimer = setInterval(pollWarehouseLabels, 5000);
+  // Poll warehouse labels every 4 seconds for fast sync
+  whPollTimer = setInterval(pollWarehouseLabels, 4000);
 }
 
 async function poll() {
@@ -846,7 +996,7 @@ function doLogout() {
     skus = {}; movements = {}; movArr = []; lastHash = { s: '', m: '', w: '' };
     document.getElementById('app').style.display = 'none';
     document.getElementById('passcode-screen').style.display = 'flex';
-    pcBuffer = ''; updatePcDots();
+    pcBuffer = ''; updatePcDisplay();
     document.getElementById('pc-err').textContent = '';
   }
 }
@@ -897,7 +1047,7 @@ async function saveRename() {
   }
   toast('✅ เปลี่ยนชื่อเป็น "' + val + '" — ซิงค์แล้ว', 'success');
   closeRename();
-  lastHash.w = '';
+  lastHash.w = ''; // force re-fetch on next poll
 }
 
 function switchWarehouse(whId) {
@@ -1409,7 +1559,7 @@ function toast(msg, type) {
 // ── KEYBOARD SUPPORT ──
 document.addEventListener('keydown', e => {
   const pc = document.getElementById('passcode-screen');
-  if (pc.style.display !== 'none' && pc.style.display !== '') {
+  if (pc.style.display === 'flex') {
     if (e.key >= '0' && e.key <= '9') pcKey(e.key);
     else if (e.key === 'Backspace') pcDel();
   }
@@ -1426,7 +1576,10 @@ window.addEventListener('load', () => {
     user = sessionUser;
     startApp();
   } else {
-    document.getElementById('passcode-screen').style.display = 'flex';
+    const pc = document.getElementById('passcode-screen');
+    pc.style.display = 'flex';
+    // initialize cursor on first slot
+    updatePcDisplay();
   }
 });
 </script>
