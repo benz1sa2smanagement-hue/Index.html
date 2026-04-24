@@ -178,7 +178,7 @@ html, body { height: 100%; font-family: 'Sarabun', -apple-system, sans-serif; ba
 .frow label { font-size: 15px; color: var(--text); font-weight: 500; min-width: 76px; flex-shrink: 0; }
 .frow input, .frow select { flex: 1; border: none; outline: none; font-size: 15px; font-family: 'Sarabun',sans-serif; background: transparent; color: var(--text); text-align: right; -webkit-appearance: none; }
 
-/* ===== BUG FIX: ช่องจำนวน + dropdown หน่วย ===== */
+/* ===== FIX: ช่องจำนวน + dropdown หน่วย ===== */
 .frow .qpair {
 display: flex;
 gap: 8px;
@@ -187,30 +187,25 @@ justify-content: flex-end;
 align-items: center;
 min-width: 0;
 }
-/* ช่องตัวเลข — กำหนด width แน่ชัด ไม่ shrink */
 .frow .qpair input[type=“number”] {
 flex: 0 0 90px;
 width: 90px;
 min-width: 72px;
 text-align: right;
-/* มีกรอบชัดเจนให้เห็น */
 background: var(–surface2);
 border: 1.5px solid var(–border) !important;
 border-radius: 8px;
 padding: 7px 10px;
 color: var(–text) !important;
 font-family: ‘IBM Plex Mono’, monospace;
-font-size: 15px;
-font-weight: 600;
-/* ป้องกัน iOS auto-zoom */
 font-size: 16px;
+font-weight: 600;
 }
 .frow .qpair input[type=“number”]:focus {
 border-color: var(–accent) !important;
 background: var(–accent-light);
 outline: none;
 }
-/* dropdown หน่วย */
 .frow .qpair select {
 flex: 0 0 72px;
 width: 72px;
@@ -232,7 +227,7 @@ cursor: pointer;
 border-color: var(–accent) !important;
 outline: none;
 }
-/* ========================================= */
+/* ============================================ */
 
 .convert-bar { padding: 9px 14px; background: var(–accent-light); border-radius: var(–radius-sm); font-size: 13px; font-weight: 700; color: var(–accent); display: none; border: 1px solid #93c5fd; }
 .plat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
@@ -638,18 +633,15 @@ function onSkuCh(){
   document.getElementById('i-ppc').textContent=(s.piecesPerCase||1)+' แพ็ค';
   document.getElementById('i-stock').textContent=stock+' แพ็ค';
   info.style.display='flex';
-  // ไม่รีเซ็ตค่าในช่อง input — แค่อัปเดต convert bar และ preview
   updateConvertBar();
   updateAdjPreview();
 }
 
-// เปลี่ยนหน่วย → อัปเดต bar เท่านั้น ไม่แตะค่าใน input
 function onUnitChange(){
   updateConvertBar();
   updateAdjPreview();
 }
 
-// คำนวณ + แสดง convert bar (เรียกจากการพิมพ์จำนวน)
 function calcPcs(){
   updateConvertBar();
   updateAdjPreview();
