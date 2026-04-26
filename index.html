@@ -341,10 +341,7 @@ font-weight: 700;
 color: #fff;
 line-height: 1;
 }
-.allwh-kpi-val.green { color: #34c759; }
-.allwh-kpi-val.red   { color: #ff6b60; }
-.allwh-kpi-val.blue  { color: #5ac8fa; }
-.allwh-kpi-lbl {
+.allwh-kpi-val.allwh-kpi-val.allwh-kpi-val.allwh-kpi-lbl {
 font-size: 10px;
 color: rgba(255,255,255,0.45);
 font-weight: 600;
@@ -428,8 +425,8 @@ font-size: 14px;
 font-weight: 700;
 color: var(–text);
 }
-.allwh-wh-stat-val.green { color: var(–green); }
-.allwh-wh-stat-val.red   { color: var(–red); }
+.allwh-wh-stat-val.aw-green { color: var(–green); }
+.allwh-wh-stat-val.aw-red   { color: var(–red); }
 .allwh-wh-stat-lbl {
 font-size: 10px;
 color: var(–text3);
@@ -628,15 +625,15 @@ font-family: ‘Sarabun’,sans-serif;
     <div class="allwh-hero-name" id="allwh-ws-name">WS-<span id="allwh-ws-code">------</span></div>
     <div class="allwh-kpi-row">
       <div class="allwh-kpi">
-        <div class="allwh-kpi-val blue" id="aw-total-sku">0</div>
+        <div class="allwh-kpi-val aw-blue" id="aw-total-sku">0</div>
         <div class="allwh-kpi-lbl">SKU รวม</div>
       </div>
       <div class="allwh-kpi">
-        <div class="allwh-kpi-val green" id="aw-total-in">0</div>
+        <div class="allwh-kpi-val aw-green" id="aw-total-in">0</div>
         <div class="allwh-kpi-lbl">รับเข้าวันนี้</div>
       </div>
       <div class="allwh-kpi">
-        <div class="allwh-kpi-val red" id="aw-total-out">0</div>
+        <div class="allwh-kpi-val aw-red" id="aw-total-out">0</div>
         <div class="allwh-kpi-lbl">จ่ายออกวันนี้</div>
       </div>
     </div>
@@ -1180,12 +1177,12 @@ function renderAllWhPerWh(today){
           </div>
           <div class="allwh-wh-divider"></div>
           <div class="allwh-wh-stat">
-            <div class="allwh-wh-stat-val green">+${whIn}</div>
+            <div class="allwh-wh-stat-val aw-green">+${whIn}</div>
             <div class="allwh-wh-stat-lbl">รับเข้าวันนี้</div>
           </div>
           <div class="allwh-wh-divider"></div>
           <div class="allwh-wh-stat">
-            <div class="allwh-wh-stat-val red">-${whOut}</div>
+            <div class="allwh-wh-stat-val aw-red">-${whOut}</div>
             <div class="allwh-wh-stat-lbl">จ่ายออกวันนี้</div>
           </div>
         </div>
