@@ -413,8 +413,11 @@ html, body { height: 100%; font-family: 'Sarabun', -apple-system, sans-serif; ba
   <div class="aw-val-grid">
     <div class="aw-val-card awc-cost"><div class="aw-val-icon">📦</div><div class="aw-val-lbl">ต้นทุนสต็อค</div><div class="aw-val-num" id="aw-cost">฿0</div><div class="aw-val-sub">ซื้อ × สต็อคทุกคลัง</div></div>
     <div class="aw-val-card awc-sale"><div class="aw-val-icon">🏷️</div><div class="aw-val-lbl">มูลค่าขาย</div><div class="aw-val-num" id="aw-sale">฿0</div><div class="aw-val-sub">ราคาขาย × สต็อค</div></div>
-    <div class="aw-val-card awc-profit"><div class="aw-val-icon">✨</div><div class="aw-val-lbl">กำไรในสต็อค</div><div class="aw-val-num" id="aw-profit">฿0</div><div class="aw-val-sub">ขาย − ต้นทุน</div></div>
-    <div class="aw-val-card awc-sold"><div class="aw-val-icon">💸</div><div class="aw-val-lbl">ยอดขายจริง</div><div class="aw-val-num" id="aw-sold">฿0</div><div class="aw-val-sub">จ่ายออกทุกคลัง</div></div>
+    <div class="aw-val-card awc-profit"><div class="aw-val-icon">✨</div><div class="aw-val-lbl">กำไรในสต็อค</div><div class="aw-val-num" id="aw-profit">฿0</div><div class="aw-val-sub">มูลค่าขาย − ต้นทุน</div></div>
+    <div class="aw-val-card awc-sold"><div class="aw-val-icon">💸</div><div class="aw-val-lbl">ยอดขายจริง</div><div class="aw-val-num" id="aw-sold">฿0</div><div class="aw-val-sub" id="aw-sold-lbl" style="color:var(--purple);font-weight:700;">เฉพาะ: นารินทร์, เบ้น</div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:var(--purple-light);border:1px solid #c4b5fd;border-radius:var(--radius-sm);font-size:12px;color:var(--purple);font-weight:600;">
+    <span>🔒</span><span>ยอดขายจริง (💸) แสดงเฉพาะรายการของ <strong>นารินทร์</strong> และ <strong>เบ้น</strong> เท่านั้น</span>
   </div>
   <div class="sec-lbl">📈 เปรียบเทียบสต็อคแต่ละคลัง</div>
   <div class="aw-chart-wrap"><div class="aw-chart-title">จำนวนสต็อค (แพ็ค) แยกคลัง</div><div class="aw-chart-box"><canvas id="ch-aw-compare"></canvas></div></div>
@@ -630,6 +633,8 @@ let chPlatQty,chDeduct,chSkuVal,chMonthly,chDashStock,chAwCompare;
 const WH_DEFAULTS=[{id:'WH_A',label:'คลัง A'},{id:'WH_B',label:'คลัง B'},{id:'WH_C',label:'คลัง C'}];
 let WAREHOUSES=[],renamingWhId=null;
 const WH_COLORS=['#007aff','#34c759','#ff9500','#af52de','#ff3b30','#5ac8fa'];
+const AW_VALUE_USERS=['นารินทร์','เบ้น']; // เฉพาะ user เหล่านี้เท่านั้นที่นับมูลค่าเงินใน ภาพรวม
+function isValueUser(u){ return AW_VALUE_USERS.some(n=>(u||'').trim()===n); }
 
 const whLabelsPath=()=>'ws_'+currentWsKey+'/warehouse_labels';
 const rp=()=>'ws_'+currentWsKey+'/rooms/'+room;
@@ -833,8 +838,10 @@ function awRender(){
     const sm=computeStockFrom(d.movements||{});
     Object.values(d.movements||{}).forEach(m=>{
       if((m.date||'').slice(0,10)===today){if(m.type==='in')totalIn+=m.pieces;else if(m.type==='out')totalOut+=m.pieces;}
-      if(m.type==='out'){const s=d.skus[m.skuId]||{};totalSold+=m.pieces*(s.salePrice||0);}
+      // มูลค่าขาย: นับเฉพาะ user ที่อนุญาต
+      if(m.type==='out'&&isValueUser(m.user)){const s=d.skus[m.skuId]||{};totalSold+=m.pieces*(s.salePrice||0);}
     });
+    // มูลค่าสต็อค: แสดงเฉพาะเมื่อ user ปัจจุบันอนุญาต หรือเป็น stock value (แสดงเสมอ แต่ยอดขายกรอง)
     Object.entries(sm).forEach(([id,qty])=>{if(qty>0){const s=d.skus[id]||{};totalCost+=qty*(s.costPrice||0);totalSale+=qty*(s.salePrice||0);}});
   });
 
@@ -844,7 +851,10 @@ function awRender(){
   document.getElementById('aw-cost').textContent=fmtB(totalCost);
   document.getElementById('aw-sale').textContent=fmtB(totalSale);
   document.getElementById('aw-profit').textContent=fmtB(totalSale-totalCost);
+  // แสดง label บอกว่า filter เฉพาะ user ที่กำหนด
   document.getElementById('aw-sold').textContent=fmtB(totalSold);
+  const soldLbl=document.getElementById('aw-sold-lbl');
+  if(soldLbl) soldLbl.textContent='เฉพาะ: '+AW_VALUE_USERS.join(', ');
 
   // Compute stock per warehouse per name
   const smByWh={}; // whId -> { skuId -> qty }
@@ -872,7 +882,7 @@ function awRenderPerWh(today,maxStock,smByWh){
     let whIn=0,whOut=0,whSold=0,whSale=0;
     Object.values(d.movements||{}).forEach(m=>{
       if((m.date||'').slice(0,10)===today){if(m.type==='in')whIn+=m.pieces;else if(m.type==='out')whOut+=m.pieces;}
-      if(m.type==='out'){const s=d.skus[m.skuId]||{};whSold+=m.pieces*(s.salePrice||0);}
+      if(m.type==='out'&&isValueUser(m.user)){const s=d.skus[m.skuId]||{};whSold+=m.pieces*(s.salePrice||0);}
     });
     Object.entries(sm).forEach(([id,qty])=>{if(qty>0){const s=d.skus[id]||{};whSale+=qty*(s.salePrice||0);}});
     const totalStock=Object.values(sm).reduce((a,b)=>a+(b>0?b:0),0);
@@ -967,10 +977,13 @@ function awRenderTop(nameToIds,smByWh){
   const outByName={};
   WAREHOUSES.forEach(wh=>{
     Object.values(awData[wh.id]?.movements||{}).forEach(m=>{
-      if(m.type!=='out'){return;}
+      if(m.type!=='out') return;
       const s=awData[wh.id]?.skus[m.skuId]||{};
       const nm=(s.name||m.skuId).trim();
-      outByName[nm]=(outByName[nm]||0)+m.pieces;
+      // ยอดขาย (แพ็ค): นับทุกคน, มูลค่าเงิน: กรองเฉพาะ user
+      outByName[nm]=outByName[nm]||{pieces:0,val:0};
+      outByName[nm].pieces+=m.pieces;
+      if(isValueUser(m.user)) outByName[nm].val+=(m.pieces*(s.salePrice||0));
     });
   });
 
@@ -993,7 +1006,9 @@ function awRenderTop(nameToIds,smByWh){
 
   el.innerHTML=totals.map(({nm,total,perWh})=>{
     const s=skuDataByName[nm]||{};
-    const out=outByName[nm]||0;
+    const outObj=outByName[nm]||{pieces:0,val:0};
+    const out=outObj.pieces;
+    const outVal=outObj.val;
     const pct=Math.round(total/maxQ*100);
     // Build stacked bar segments
     const segs=WAREHOUSES.map((wh,i)=>{
@@ -1023,7 +1038,7 @@ function awRenderTop(nameToIds,smByWh){
       <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;">${chips}</div>
       <div style="display:flex;align-items:center;gap:8px;">
         <div style="flex:1;background:var(--surface2);border-radius:3px;height:6px;overflow:hidden;display:flex;">${segs}</div>
-        <span style="font-size:11px;color:var(--text3);white-space:nowrap;flex-shrink:0;">ขาย ${out} แพ็ค</span>
+        <span style="font-size:11px;color:var(--text3);white-space:nowrap;flex-shrink:0;">ขาย ${out} แพ็ค${outVal>0?' · '+fmtB(outVal):''}</span>
       </div>
     </div>`;
   }).join('')+'<div style="padding:8px 14px;background:var(--bg);"><div style="font-size:11px;color:var(--text3);text-align:center;">สินค้าชื่อเดียวกันถูกรวมกัน แยกสีตามคลัง</div></div>';
