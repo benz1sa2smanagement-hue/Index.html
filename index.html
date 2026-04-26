@@ -13,7 +13,231 @@
 <title>StockFlow</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
+/* ===================================================
+   ANNOUNCEMENT SYSTEM
+   =================================================== */
+const ANN_ADMIN = 'นารินทร์';
+const annPath = () => 'ws_' + currentWsKey + '/announcement';
+let annCurrent = null;
+let annIconSelected = '📢';
+let annAdminOpen = false;
+
+async function loadAnnouncement() {
+try {
+const data = await apiGet(annPath());
+annCurrent = data;
+checkAndShowAnn(data);
+} catch(e) {}
+}
+
+function checkAndShowAnn(data) {
+if (!data || !data.active || !data.body) return;
+const now = Date.now();
+if (data.startAt && now < data.startAt) return;
+if (data.endAt && now > data.endAt) return;
+// Check if user already dismissed this version
+const dismissKey = ‘ann_dismiss_’ + currentWsKey + ‘_’ + (data.updatedAt || 0);
+if (localStorage.getItem(dismissKey)) return;
+showAnnPopup(data, dismissKey);
+}
+
+function showAnnPopup(data, dismissKey) {
+document.getElementById(‘ann-icon’).textContent = data.icon || ‘📢’;
+document.getElementById(‘ann-title’).textContent = data.title || ‘ประกาศ’;
+document.getElementById(‘ann-body’).textContent = data.body;
+// Period label
+let periodTxt = ‘’;
+if (data.startAt) {
+const sd = new Date(data.startAt);
+periodTxt = fmtDt(sd);
+if (data.endAt) periodTxt += ’ – ’ + fmtDt(new Date(data.endAt));
+}
+document.getElementById(‘ann-period’).textContent = periodTxt;
+document.getElementById(‘ann-overlay’).dataset.dismissKey = dismissKey || ‘’;
+document.getElementById(‘ann-overlay’).classList.add(‘open’);
+}
+
+function fmtDt(d) {
+return d.getDate() + ‘/’ + (d.getMonth()+1) + ‘/’ + d.getFullYear() + ’ ’ +
+String(d.getHours()).padStart(2,‘0’) + ‘:’ + String(d.getMinutes()).padStart(2,‘0’);
+}
+
+function dismissAnn() {
+const key = document.getElementById(‘ann-overlay’).dataset.dismissKey;
+if (key) localStorage.setItem(key, ‘1’);
+document.getElementById(‘ann-overlay’).classList.remove(‘open’);
+}
+
+/* Admin panel */
+function openAnnAdmin() {
+if (user !== ANN_ADMIN) { toast(‘เฉพาะนารินทร์เท่านั้น’, ‘error’); return; }
+annAdminOpen = true;
+// Pre-fill from current data
+if (annCurrent) {
+document.getElementById(‘ann-admin-title’).value = annCurrent.title || ‘’;
+document.getElementById(‘ann-admin-body’).value = annCurrent.body || ‘’;
+annIconSelected = annCurrent.icon || ‘📢’;
+document.querySelectorAll(’.ann-icon-btn’).forEach(b => {
+b.classList.toggle(‘active’, b.dataset.icon === annIconSelected);
+});
+const tog = document.getElementById(‘ann-admin-toggle’);
+tog.className = ‘ann-toggle’ + (annCurrent.active ? ’ on’ : ‘’);
+if (annCurrent.startAt) {
+const d = new Date(annCurrent.startAt - new Date().getTimezoneOffset()*60000);
+document.getElementById(‘ann-admin-start’).value = d.toISOString().slice(0,16);
+} else { document.getElementById(‘ann-admin-start’).value = ‘’; }
+if (annCurrent.endAt) {
+const d = new Date(annCurrent.endAt - new Date().getTimezoneOffset()*60000);
+document.getElementById(‘ann-admin-end’).value = d.toISOString().slice(0,16);
+} else { document.getElementById(‘ann-admin-end’).value = ‘’; }
+} else {
+document.getElementById(‘ann-admin-title’).value = ‘’;
+document.getElementById(‘ann-admin-body’).value = ‘’;
+document.getElementById(‘ann-admin-toggle’).className = ‘ann-toggle on’;
+document.getElementById(‘ann-admin-start’).value = ‘’;
+document.getElementById(‘ann-admin-end’).value = ‘’;
+}
+updateAnnPreview();
+document.getElementById(‘ov-ann-admin’).classList.add(‘open’);
+}
+
+function closeAnnAdmin() {
+document.getElementById(‘ov-ann-admin’).classList.remove(‘open’);
+annAdminOpen = false;
+}
+function closeAnnAdminBg(e) { if(e.target===document.getElementById(‘ov-ann-admin’)) closeAnnAdmin(); }
+
+function pickAnnIcon(icon, el) {
+annIconSelected = icon;
+document.querySelectorAll(’.ann-icon-btn’).forEach(b => b.classList.remove(‘active’));
+el.classList.add(‘active’);
+updateAnnPreview();
+}
+
+function toggleAnnActive() {
+const tog = document.getElementById(‘ann-admin-toggle’);
+tog.classList.toggle(‘on’);
+}
+
+function updateAnnPreview() {
+const t = document.getElementById(‘ann-admin-title’).value || ‘หัวข้อ’;
+const b = document.getElementById(‘ann-admin-body’).value || ‘ข้อความ…’;
+document.getElementById(‘ann-preview-box’).textContent = annIconSelected + ’ ’ + t + ‘: ’ + b.slice(0,60) + (b.length>60?’…’:’’);
+}
+
+document.addEventListener(‘input’, e => {
+if (e.target.id === ‘ann-admin-title’ || e.target.id === ‘ann-admin-body’) updateAnnPreview();
+});
+
+async function saveAnn() {
+if (user !== ANN_ADMIN) { toast(‘เฉพาะนารินทร์เท่านั้น’, ‘error’); return; }
+const title = document.getElementById(‘ann-admin-title’).value.trim();
+const body = document.getElementById(‘ann-admin-body’).value.trim();
+if (!body) { toast(‘กรุณากรอกข้อความ’, ‘error’); return; }
+const active = document.getElementById(‘ann-admin-toggle’).classList.contains(‘on’);
+const startVal = document.getElementById(‘ann-admin-start’).value;
+const endVal = document.getElementById(‘ann-admin-end’).value;
+const startAt = startVal ? new Date(startVal).getTime() : null;
+const endAt = endVal ? new Date(endVal).getTime() : null;
+if (startAt && endAt && endAt <= startAt) { toast(‘เวลาสิ้นสุดต้องหลังเวลาเริ่ม’, ‘error’); return; }
+const data = { icon: annIconSelected, title, body, active, startAt, endAt, updatedAt: Date.now(), createdBy: user };
+try {
+await apiPut(annPath(), data);
+annCurrent = data;
+toast(‘✅ บันทึกประกาศแล้ว’, ‘success’);
+closeAnnAdmin();
+if (active) checkAndShowAnn(data);
+} catch(e) { toast(‘เกิดข้อผิดพลาด’, ‘error’); }
+}
+
+/* ===================================================
+LOW STOCK ALERT SYSTEM
+=================================================== */
+const LOW_STOCK_CASES = 10; // เตือนเมื่อต่ำกว่า 10 ลัง
+let lsCheckTimer = null;
+let lowStockItems = [];
+
+async function checkLowStock() {
+if (!currentWsKey) return;
+const items = [];
+await Promise.all(WAREHOUSES.map(async wh => {
+try {
+const [s, m] = await Promise.all([
+apiGet(‘ws_’ + currentWsKey + ‘/rooms/’ + wh.id + ‘/skus’),
+apiGet(‘ws_’ + currentWsKey + ‘/rooms/’ + wh.id + ‘/movements’)
+]);
+const skuData = s || {};
+const sm = computeStockFrom(m || {});
+Object.entries(sm).forEach(([skuId, qty]) => {
+const sku = skuData[skuId] || {};
+const ppc = sku.piecesPerCase || 1;
+const cases = ppc > 1 ? qty / ppc : qty; // แพ็ค หรือ ลัง
+const threshold = ppc > 1 ? LOW_STOCK_CASES * ppc : LOW_STOCK_CASES;
+if (qty > 0 && qty < threshold) {
+items.push({ whId: wh.id, whLabel: wh.label, skuId, name: sku.name || skuId, qty, ppc, cases: ppc > 1 ? Math.floor(qty/ppc) : qty });
+}
+});
+} catch(e) {}
+}));
+lowStockItems = items;
+const dot = document.getElementById(‘notif-dot’);
+if (dot) dot.className = ‘notif-dot’ + (items.length > 0 ? ’ show’ : ‘’);
+}
+
+function showLowStock() {
+const el = document.getElementById(‘ls-list’);
+if (!lowStockItems.length) {
+el.innerHTML = ‘<div class="empty-st" style="color:var(--green);">✅ สต็อคทุกรายการปกติ</div>’;
+} else {
+const whColorMap = {};
+WAREHOUSES.forEach((wh, i) => { whColorMap[wh.id] = WH_COLORS[i % WH_COLORS.length]; });
+el.innerHTML = ‘<div style="padding:8px 20px;font-size:12px;color:var(--text2);font-weight:600;">สินค้าที่เหลือต่ำกว่า ’ + LOW_STOCK_CASES + ’ ลัง</div>’ +
+lowStockItems.sort((a,b) => a.cases - b.cases).map(item => {
+const color = whColorMap[item.whId] || ‘#007aff’;
+const urgency = item.cases <= 3 ? ‘var(–red)’ : item.cases <= 5 ? ‘var(–orange)’ : ‘var(–text2)’;
+return `<div class="low-stock-item"> <div style="flex:1;min-width:0;"> <div style="font-size:14px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.name}</div> <div style="display:flex;align-items:center;gap:6px;margin-top:3px;"> <span class="low-stock-wh" style="background:${color}18;color:${color};border:1px solid ${color}44;">${item.whLabel}</span> </div> </div> <div style="text-align:right;flex-shrink:0;"> <div class="low-stock-badge">${item.ppc>1 ? Math.floor(item.qty/item.ppc)+' ลัง' : item.qty+' แพ็ค'}</div> <div style="font-size:10px;margin-top:2px;color:var(--text3);">${item.qty} แพ็ค</div> </div> </div>`;
+}).join(’’);
+}
+document.getElementById(‘ls-overlay’).classList.add(‘open’);
+}
+
+function closeLowStock() {
+document.getElementById(‘ls-overlay’).classList.remove(‘open’);
+}
+
+function startLsCheck() {
+checkLowStock();
+if (lsCheckTimer) clearInterval(lsCheckTimer);
+lsCheckTimer = setInterval(checkLowStock, 60000); // ทุก 1 นาที
+}
+
+/* ===================================================
+HOOK INTO startApp
+=================================================== */
+const _origStartApp = startApp;
+startApp = async function() {
+await _origStartApp();
+setTimeout(() => { loadAnnouncement(); startLsCheck(); }, 1200);
+// Add announce button in top bar if นารินทร์
+setTimeout(() => {
+if (user === ANN_ADMIN) {
+const topRight = document.querySelector(’.top-right’);
+if (topRight && !document.getElementById(‘ann-admin-btn’)) {
+const btn = document.createElement(‘button’);
+btn.id = ‘ann-admin-btn’;
+btn.className = ‘av-btn’;
+btn.style.cssText = ‘background:var(–orange);font-size:15px;’;
+btn.title = ‘ตั้งค่าประกาศ’;
+btn.textContent = ‘📢’;
+btn.onclick = openAnnAdmin;
+topRight.insertBefore(btn, topRight.firstChild);
+}
+}
+}, 500);
+};
+
+</script>
 <style>
 /* ===== ORIGINAL CSS — ไม่แตะเลย ===== */
 :root {
@@ -319,6 +543,52 @@ html, body { height: 100%; font-family: 'Sarabun', -apple-system, sans-serif; ba
 .aw-refreshed b { color:var(–green); }
 @keyframes awSpin { to{transform:rotate(360deg)} }
 .aw-refreshing { animation:awSpin .8s linear infinite; display:inline-block; }
+
+/* ===== ANNOUNCEMENT POPUP ===== */
+.ann-overlay { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:8000; display:none; align-items:center; justify-content:center; padding:24px; backdrop-filter:blur(3px); }
+.ann-overlay.open { display:flex; }
+.ann-box { background:var(–surface); border-radius:20px; width:100%; max-width:360px; overflow:hidden; box-shadow:0 24px 64px rgba(0,0,0,.25); animation:fadeIn .25s ease; }
+.ann-header { background:linear-gradient(135deg,#1c1c2e,#16213e); padding:20px 20px 16px; text-align:center; position:relative; }
+.ann-icon { font-size:32px; margin-bottom:6px; }
+.ann-title { font-size:18px; font-weight:700; color:#fff; }
+.ann-period { font-size:11px; color:rgba(255,255,255,.5); margin-top:4px; font-family:‘IBM Plex Mono’,monospace; }
+.ann-body { padding:18px 20px; font-size:15px; line-height:1.7; color:var(–text); white-space:pre-wrap; word-break:break-word; max-height:260px; overflow-y:auto; }
+.ann-foot { padding:12px 20px 16px; display:flex; justify-content:center; }
+.ann-ok { width:100%; padding:14px; background:var(–accent); color:#fff; border:none; border-radius:12px; font-size:16px; font-weight:700; font-family:‘Sarabun’,sans-serif; cursor:pointer; }
+.ann-ok:active { opacity:.85; }
+
+/* ===== ANNOUNCEMENT ADMIN PANEL ===== */
+.ann-admin-sheet { background:var(–surface); border-radius:20px 20px 0 0; padding:16px 20px 32px; max-height:88vh; overflow-y:auto; width:100%; max-width:540px; animation:slideUp .28s ease; }
+.ann-admin-title { font-size:17px; font-weight:700; color:var(–text); margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+.ann-field-lbl { font-size:12px; font-weight:700; color:var(–text2); margin-bottom:6px; }
+.ann-textarea { width:100%; padding:12px 14px; border:1.5px solid var(–border); border-radius:var(–radius-sm); font-size:15px; font-family:‘Sarabun’,sans-serif; color:var(–text); background:var(–surface); resize:vertical; min-height:100px; outline:none; line-height:1.6; }
+.ann-textarea:focus { border-color:var(–accent); }
+.ann-inp { width:100%; padding:11px 14px; border:1.5px solid var(–border); border-radius:var(–radius-sm); font-size:14px; font-family:‘Sarabun’,sans-serif; color:var(–text); background:var(–surface); outline:none; }
+.ann-inp:focus { border-color:var(–accent); }
+.ann-toggle-row { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; background:var(–bg); border-radius:var(–radius-sm); border:1px solid var(–border); }
+.ann-toggle-lbl { font-size:14px; font-weight:600; color:var(–text); }
+.ann-toggle { width:44px; height:26px; border-radius:13px; background:var(–surface2); border:none; cursor:pointer; position:relative; transition:background .2s; padding:0; }
+.ann-toggle.on { background:var(–green); }
+.ann-toggle::after { content:’’; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:transform .2s; box-shadow:0 1px 4px rgba(0,0,0,.2); }
+.ann-toggle.on::after { transform:translateX(18px); }
+.ann-preview-box { background:var(–accent-light); border:1px solid #93c5fd; border-radius:var(–radius-sm); padding:10px 14px; font-size:13px; color:var(–accent); font-weight:600; }
+
+/* ===== LOW STOCK ALERT ===== */
+.low-stock-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:7000; display:none; align-items:flex-end; justify-content:center; backdrop-filter:blur(2px); }
+.low-stock-overlay.open { display:flex; }
+.low-stock-sheet { background:var(–surface); border-radius:20px 20px 0 0; width:100%; max-width:540px; padding:0 0 calc(var(–safe-bottom)+16px); max-height:75vh; overflow-y:auto; animation:slideUp .28s ease; }
+.low-stock-head { padding:14px 20px 12px; border-bottom:1px solid var(–border); display:flex; align-items:center; justify-content:space-between; }
+.low-stock-title { font-size:16px; font-weight:700; color:var(–red); display:flex; align-items:center; gap:6px; }
+.low-stock-close { width:28px; height:28px; border-radius:50%; background:var(–surface2); border:1px solid var(–border); cursor:pointer; font-size:14px; color:var(–text2); display:flex; align-items:center; justify-content:center; }
+.low-stock-item { display:flex; align-items:center; padding:11px 20px; border-bottom:.5px solid var(–border); gap:12px; }
+.low-stock-item:last-child { border-bottom:none; }
+.low-stock-badge { background:var(–red-light); border:1px solid #fca5a5; border-radius:8px; padding:3px 8px; font-size:11px; font-weight:700; color:var(–red); white-space:nowrap; }
+.low-stock-wh { font-size:11px; font-weight:700; border-radius:5px; padding:2px 6px; }
+
+/* Notification bell */
+.notif-bell { position:relative; }
+.notif-dot { position:absolute; top:-2px; right:-2px; width:8px; height:8px; border-radius:50%; background:var(–red); border:1.5px solid var(–surface); display:none; }
+.notif-dot.show { display:block; }
 </style>
 
 </head>
@@ -371,6 +641,9 @@ html, body { height: 100%; font-family: 'Sarabun', -apple-system, sans-serif; ba
     <div class="top-right">
       <div class="sync-pill" id="sync-pill"><div class="sync-dot"></div><span class="sync-txt">ออนไลน์</span></div>
       <button class="av-btn" id="av-btn" onclick="doLogout()">?</button>
+      <button class="notif-bell" onclick="showLowStock()" style="width:32px;height:32px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;" title="แจ้งเตือนสต็อค">
+        🔔<div class="notif-dot" id="notif-dot"></div>
+      </button>
     </div>
   </div>
   <div class="wh-bar" id="wh-bar"></div>
@@ -608,6 +881,98 @@ html, body { height: 100%; font-family: 'Sarabun', -apple-system, sans-serif; ba
     <div class="sh-foot">
       <button class="primary-btn btn-gray" style="flex:0.6;padding:14px;font-size:15px;" onclick="closeSku()">ยกเลิก</button>
       <button class="primary-btn" style="flex:1;padding:14px;font-size:15px;" onclick="saveSku()">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ANNOUNCEMENT POPUP -->
+
+<div class="ann-overlay" id="ann-overlay">
+  <div class="ann-box">
+    <div class="ann-header">
+      <div class="ann-icon" id="ann-icon">📢</div>
+      <div class="ann-title" id="ann-title">ประกาศ</div>
+      <div class="ann-period" id="ann-period"></div>
+    </div>
+    <div class="ann-body" id="ann-body"></div>
+    <div class="ann-foot">
+      <button class="ann-ok" onclick="dismissAnn()">✓ รับทราบแล้ว</button>
+    </div>
+  </div>
+</div>
+
+<!-- ANNOUNCEMENT ADMIN OVERLAY -->
+
+<div class="overlay" id="ov-ann-admin" onclick="closeAnnAdminBg(event)">
+  <div class="ann-admin-sheet">
+    <div class="sh-handle"></div>
+    <div class="ann-admin-title">📢 ตั้งค่าประกาศ <span style="font-size:12px;color:var(--purple);background:var(--purple-light);padding:2px 8px;border-radius:6px;font-weight:700;">นารินทร์ เท่านั้น</span></div>
+
+```
+<div style="display:flex;flex-direction:column;gap:14px;">
+  <div>
+    <div class="ann-field-lbl">ไอคอน</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="pbtn ann-icon-btn active" data-icon="📢" onclick="pickAnnIcon('📢',this)">📢</button>
+      <button class="pbtn ann-icon-btn" data-icon="🔔" onclick="pickAnnIcon('🔔',this)">🔔</button>
+      <button class="pbtn ann-icon-btn" data-icon="⚠️" onclick="pickAnnIcon('⚠️',this)">⚠️</button>
+      <button class="pbtn ann-icon-btn" data-icon="🎉" onclick="pickAnnIcon('🎉',this)">🎉</button>
+      <button class="pbtn ann-icon-btn" data-icon="📦" onclick="pickAnnIcon('📦',this)">📦</button>
+      <button class="pbtn ann-icon-btn" data-icon="🚨" onclick="pickAnnIcon('🚨',this)">🚨</button>
+    </div>
+  </div>
+  <div>
+    <div class="ann-field-lbl">หัวข้อประกาศ</div>
+    <input class="ann-inp" type="text" id="ann-admin-title" placeholder="เช่น ประกาศสำคัญ" maxlength="50">
+  </div>
+  <div>
+    <div class="ann-field-lbl">ข้อความ</div>
+    <textarea class="ann-textarea" id="ann-admin-body" placeholder="พิมพ์ข้อความประกาศ..."></textarea>
+  </div>
+  <div>
+    <div class="ann-field-lbl">ช่วงเวลาที่แสดง</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:13px;color:var(--text2);min-width:40px;">เริ่ม</span>
+        <input class="ann-inp" type="datetime-local" id="ann-admin-start" style="flex:1;">
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:13px;color:var(--text2);min-width:40px;">สิ้นสุด</span>
+        <input class="ann-inp" type="datetime-local" id="ann-admin-end" style="flex:1;">
+      </div>
+      <div style="font-size:11px;color:var(--text3);">ไม่ระบุเวลาสิ้นสุด = แสดงถาวร</div>
+    </div>
+  </div>
+  <div class="ann-toggle-row">
+    <div>
+      <div class="ann-toggle-lbl">เปิดใช้ประกาศ</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px;">ปิด = ไม่แสดงแก่ใคร</div>
+    </div>
+    <button class="ann-toggle on" id="ann-admin-toggle" onclick="toggleAnnActive()"></button>
+  </div>
+  <div class="ann-preview-box" id="ann-preview-box">ตัวอย่าง: กรอกหัวข้อและข้อความด้านบน</div>
+</div>
+
+<div style="display:flex;gap:10px;margin-top:18px;">
+  <button class="primary-btn btn-gray" style="flex:0.6;padding:14px;" onclick="closeAnnAdmin()">ยกเลิก</button>
+  <button class="primary-btn" style="flex:1;padding:14px;" onclick="saveAnn()">💾 บันทึกประกาศ</button>
+</div>
+```
+
+  </div>
+</div>
+
+<!-- LOW STOCK ALERT -->
+
+<div class="low-stock-overlay" id="ls-overlay">
+  <div class="low-stock-sheet">
+    <div class="low-stock-head">
+      <div class="low-stock-title">⚠️ สต็อคเหลือน้อย</div>
+      <button class="low-stock-close" onclick="closeLowStock()">✕</button>
+    </div>
+    <div id="ls-list"></div>
+    <div style="padding:10px 20px 0;">
+      <button class="primary-btn" style="padding:12px;font-size:14px;" onclick="closeLowStock()">รับทราบ</button>
     </div>
   </div>
 </div>
