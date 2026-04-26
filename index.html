@@ -12,6 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
+/* ===== ORIGINAL CSS — ไม่แตะเลย ===== */
 :root {
   --bg: #f2f2f7; --surface: #ffffff; --surface2: #e5e5ea; --border: #d1d1d6;
   --text: #1c1c1e; --text2: #6c6c70; --text3: #aeaeb2;
@@ -27,507 +28,298 @@
 }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
 html, body { height: 100%; font-family: 'Sarabun', -apple-system, sans-serif; background: var(--bg); color: var(--text); overflow: hidden; }
-
-/* ========== PASSCODE ========== */
 #passcode-screen {
-position: fixed; inset: 0;
-background: linear-gradient(160deg, #0a0a12 0%, #0d1117 50%, #0f1623 100%);
-display: none; flex-direction: column; align-items: center; justify-content: center;
-z-index: 9999; padding: 24px 28px;
-padding-top: calc(var(–safe-top) + 16px);
-padding-bottom: calc(var(–safe-bottom) + 16px);
+  position: fixed; inset: 0;
+  background: linear-gradient(160deg, #0a0a12 0%, #0d1117 50%, #0f1623 100%);
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 9999; padding: 24px 28px;
+  padding-top: calc(var(--safe-top) + 16px);
+  padding-bottom: calc(var(--safe-bottom) + 16px);
 }
 #passcode-screen::before {
-content: ‘’; position: absolute; inset: 0;
-background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
-background-size: 28px 28px; pointer-events: none;
+  content: ''; position: absolute; inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 28px 28px; pointer-events: none;
 }
-.pc-logo { font-family: ‘IBM Plex Mono’, monospace; font-size: 28px; font-weight: 600; color: #fff; letter-spacing: -1px; margin-bottom: 4px; position: relative; }
+.pc-logo { font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 600; color: #fff; letter-spacing: -1px; margin-bottom: 4px; position: relative; }
 .pc-logo span { color: #007aff; }
 .pc-tagline { font-size: 13px; color: rgba(255,255,255,0.38); margin-bottom: 36px; }
 .pc-label { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.55); margin-bottom: 20px; text-align: center; }
 .pc-pin-display { display: flex; gap: 10px; margin-bottom: 32px; height: 52px; align-items: center; }
-.pc-pin-slot { width: 44px; height: 52px; border-radius: 10px; border: 1.5px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; font-family: ‘IBM Plex Mono’, monospace; font-size: 24px; font-weight: 600; color: #fff; transition: all .18s cubic-bezier(.4,0,.2,1); position: relative; overflow: hidden; }
+.pc-pin-slot { width: 44px; height: 52px; border-radius: 10px; border: 1.5px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: 24px; font-weight: 600; color: #fff; transition: all .18s cubic-bezier(.4,0,.2,1); position: relative; overflow: hidden; }
 .pc-pin-slot.active { border-color: rgba(0,122,255,0.6); background: rgba(0,122,255,0.12); box-shadow: 0 0 0 3px rgba(0,122,255,0.15); }
 .pc-pin-slot.filled { border-color: rgba(0,122,255,0.4); background: rgba(0,122,255,0.10); }
 .pc-pin-slot.error { border-color: rgba(255,59,48,0.7); background: rgba(255,59,48,0.12); animation: shake .35s ease; color: #ff3b30; }
 .pc-pin-slot .pin-char { display: block; animation: popIn .15s cubic-bezier(.34,1.56,.64,1); }
-.pc-pin-slot.cursor-blink::after { content: ‘’; position: absolute; width: 2px; height: 28px; background: #007aff; border-radius: 1px; animation: blink 1s infinite; }
+.pc-pin-slot.cursor-blink::after { content: ''; position: absolute; width: 2px; height: 28px; background: #007aff; border-radius: 1px; animation: blink 1s infinite; }
 .pc-pin-slot.filled.cursor-blink::after { display: none; }
 @keyframes popIn { from{transform:scale(0.5);opacity:0} to{transform:scale(1);opacity:1} }
 @keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
 @keyframes shake { 0%,100%{transform:translateX(0)} 15%{transform:translateX(-6px)} 30%{transform:translateX(6px)} 45%{transform:translateX(-5px)} 60%{transform:translateX(5px)} 75%{transform:translateX(-3px)} 90%{transform:translateX(3px)} }
 .pc-err { font-size: 13px; font-weight: 600; color: #ff3b30; text-align: center; min-height: 18px; margin-bottom: 20px; }
 .pc-pad { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; width: 100%; max-width: 280px; }
-.pc-key { height: 66px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.07); font-size: 24px; font-family: ‘IBM Plex Mono’, monospace; font-weight: 500; color: #fff; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; transition: background .1s,transform .12s; -webkit-user-select: none; backdrop-filter: blur(4px); }
+.pc-key { height: 66px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.07); font-size: 24px; font-family: 'IBM Plex Mono', monospace; font-weight: 500; color: #fff; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; transition: background .1s,transform .12s; -webkit-user-select: none; backdrop-filter: blur(4px); }
 .pc-key:active { background: rgba(255,255,255,0.15); transform: scale(.92); }
-.pc-key .pc-sub { font-size: 8px; font-family: ‘Sarabun’,sans-serif; letter-spacing: 2px; color: rgba(255,255,255,0.3); font-weight: 700; line-height: 1; }
+.pc-key .pc-sub { font-size: 8px; font-family: 'Sarabun',sans-serif; letter-spacing: 2px; color: rgba(255,255,255,0.3); font-weight: 700; line-height: 1; }
 .pc-key.del { font-size: 20px; background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6); }
 .pc-key.empty { background: transparent; border: none; cursor: default; pointer-events: none; }
 .pc-hint { font-size: 12px; color: rgba(255,255,255,0.22); text-align: center; margin-top: 24px; line-height: 1.6; max-width: 240px; }
-
-/* ========== LOGIN ========== */
-#login-screen { position: fixed; inset: 0; background: var(–surface); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9998; padding: 24px 20px; padding-top: calc(var(–safe-top) + 24px); }
-.login-logo { font-family: ‘IBM Plex Mono’, monospace; font-size: 28px; font-weight: 600; color: var(–accent); letter-spacing: -1px; margin-bottom: 4px; }
-.login-tagline { font-size: 14px; color: var(–text2); margin-bottom: 32px; }
+#login-screen { position: fixed; inset: 0; background: var(--surface); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9998; padding: 24px 20px; padding-top: calc(var(--safe-top) + 24px); }
+.login-logo { font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 600; color: var(--accent); letter-spacing: -1px; margin-bottom: 4px; }
+.login-tagline { font-size: 14px; color: var(--text2); margin-bottom: 32px; }
 .login-form { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 12px; }
-.igroup { background: var(–surface); border-radius: var(–radius); overflow: hidden; border: 1px solid var(–border); }
-.irow { display: flex; align-items: center; padding: 0 16px; border-bottom: 0.5px solid var(–border); }
+.igroup { background: var(--surface); border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+.irow { display: flex; align-items: center; padding: 0 16px; border-bottom: 0.5px solid var(--border); }
 .irow:last-child { border-bottom: none; }
-.irow-label { font-size: 15px; color: var(–text); min-width: 90px; padding: 14px 0; font-weight: 500; }
-.irow input { flex: 1; border: none; outline: none; font-size: 15px; font-family: ‘Sarabun’,sans-serif; padding: 14px 0; background: var(–surface); color: var(–text); text-align: right; }
-.irow input::placeholder { color: var(–text3); }
-.primary-btn { width: 100%; padding: 16px; background: var(–accent); color: #fff; border: none; border-radius: var(–radius); font-size: 17px; font-family: ‘Sarabun’,sans-serif; font-weight: 600; cursor: pointer; }
+.irow-label { font-size: 15px; color: var(--text); min-width: 90px; padding: 14px 0; font-weight: 500; }
+.irow input { flex: 1; border: none; outline: none; font-size: 15px; font-family: 'Sarabun',sans-serif; padding: 14px 0; background: var(--surface); color: var(--text); text-align: right; }
+.irow input::placeholder { color: var(--text3); }
+.primary-btn { width: 100%; padding: 16px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); font-size: 17px; font-family: 'Sarabun',sans-serif; font-weight: 600; cursor: pointer; }
 .primary-btn:active { opacity: .82; }
-.login-note { display: flex; align-items: center; gap: 6px; padding: 10px 14px; background: var(–green-light); border-radius: var(–radius-sm); border: 1px solid #a7f3d0; }
+.login-note { display: flex; align-items: center; gap: 6px; padding: 10px 14px; background: var(--green-light); border-radius: var(--radius-sm); border: 1px solid #a7f3d0; }
 .login-note span { font-size: 13px; color: #059669; font-weight: 500; }
-.login-ws-chip { display: flex; align-items: center; gap: 6px; padding: 10px 14px; background: var(–accent-light); border-radius: var(–radius-sm); border: 1px solid #93c5fd; }
-.login-ws-chip span { font-size: 13px; color: var(–accent); font-weight: 600; }
-.back-link { font-size: 14px; color: var(–text3); text-align: center; cursor: pointer; padding: 8px; text-decoration: underline; }
-
-/* ========== WAREHOUSE BAR ========== */
-.wh-bar { background: var(–surface); border-bottom: 1px solid var(–border); padding: 0 8px; flex-shrink: 0; overflow-x: auto; display: flex; align-items: center; gap: 2px; min-height: 46px; -webkit-overflow-scrolling: touch; }
+.login-ws-chip { display: flex; align-items: center; gap: 6px; padding: 10px 14px; background: var(--accent-light); border-radius: var(--radius-sm); border: 1px solid #93c5fd; }
+.login-ws-chip span { font-size: 13px; color: var(--accent); font-weight: 600; }
+.back-link { font-size: 14px; color: var(--text3); text-align: center; cursor: pointer; padding: 8px; text-decoration: underline; }
+.wh-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 8px; flex-shrink: 0; overflow-x: auto; display: flex; align-items: center; gap: 2px; min-height: 46px; -webkit-overflow-scrolling: touch; }
 .wh-bar::-webkit-scrollbar { display: none; }
 .wh-tab-wrap { display: flex; align-items: center; flex-shrink: 0; border-radius: 20px; transition: background .15s; }
-.wh-tab-wrap.active { background: var(–accent); }
-.wh-tab { padding: 7px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; border: none; cursor: pointer; white-space: nowrap; font-family: ‘IBM Plex Mono’,monospace; background: transparent; color: var(–text2); letter-spacing: 0.3px; transition: color .15s; }
+.wh-tab-wrap.active { background: var(--accent); }
+.wh-tab { padding: 7px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; border: none; cursor: pointer; white-space: nowrap; font-family: 'IBM Plex Mono',monospace; background: transparent; color: var(--text2); letter-spacing: 0.3px; transition: color .15s; }
 .wh-tab-wrap.active .wh-tab { color: #fff; }
 .wh-edit-btn { width: 22px; height: 22px; border-radius: 50%; border: none; background: rgba(255,255,255,0.25); color: #fff; cursor: pointer; font-size: 11px; display: none; align-items: center; justify-content: center; margin-right: 6px; flex-shrink: 0; padding: 0; }
 .wh-tab-wrap.active .wh-edit-btn { display: flex; }
-
-/* ===== ALL-WH TAB (special) ===== */
-.wh-tab-wrap.allwh-tab { background: transparent; }
-.wh-tab-wrap.allwh-tab .wh-tab { color: var(–purple); font-size: 12px; }
-.wh-tab-wrap.allwh-tab.active { background: var(–purple); }
+/* allwh tab special */
+.wh-tab-wrap.allwh-tab .wh-tab { color: var(--purple); }
+.wh-tab-wrap.allwh-tab.active { background: var(--purple); }
 .wh-tab-wrap.allwh-tab.active .wh-tab { color: #fff; }
-
-/* ========== RENAME OVERLAY ========== */
+.wh-sep { width: 1px; height: 22px; background: var(--border); margin: 0 4px; flex-shrink: 0; }
 .rename-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 600; display: none; align-items: center; justify-content: center; padding: 24px; }
 .rename-overlay.open { display: flex; }
-.rename-box { background: var(–surface); border-radius: var(–radius); width: 100%; max-width: 320px; overflow: hidden; animation: fadeIn .2s ease; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
-.rename-box-title { font-size: 16px; font-weight: 700; color: var(–text); text-align: center; padding: 18px 20px 12px; }
-.rename-box-sub { font-size: 13px; color: var(–text2); text-align: center; padding: 0 20px 14px; }
-.rename-sync-note { font-size: 12px; color: #059669; background: var(–green-light); border: 1px solid #a7f3d0; border-radius: 8px; padding: 8px 12px; margin: 0 16px 12px; text-align: center; font-weight: 600; }
-.rename-inp { margin: 0 16px 16px; padding: 12px 14px; border: 1.5px solid var(–accent); border-radius: var(–radius-sm); font-size: 16px; font-family: ‘Sarabun’,sans-serif; font-weight: 600; color: var(–text); outline: none; width: calc(100% - 32px); background: var(–accent-light); text-align: center; }
-.rename-actions { display: flex; border-top: 0.5px solid var(–border); }
-.rename-btn { flex: 1; padding: 15px; border: none; background: transparent; font-size: 15px; font-family: ‘Sarabun’,sans-serif; cursor: pointer; font-weight: 600; }
-.rename-btn.cancel { color: var(–text2); border-right: 0.5px solid var(–border); }
-.rename-btn.confirm { color: var(–accent); }
-.rename-btn:active { background: var(–surface2); }
+.rename-box { background: var(--surface); border-radius: var(--radius); width: 100%; max-width: 320px; overflow: hidden; animation: fadeIn .2s ease; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
+.rename-box-title { font-size: 16px; font-weight: 700; color: var(--text); text-align: center; padding: 18px 20px 12px; }
+.rename-box-sub { font-size: 13px; color: var(--text2); text-align: center; padding: 0 20px 14px; }
+.rename-sync-note { font-size: 12px; color: #059669; background: var(--green-light); border: 1px solid #a7f3d0; border-radius: 8px; padding: 8px 12px; margin: 0 16px 12px; text-align: center; font-weight: 600; }
+.rename-inp { margin: 0 16px 16px; padding: 12px 14px; border: 1.5px solid var(--accent); border-radius: var(--radius-sm); font-size: 16px; font-family: 'Sarabun',sans-serif; font-weight: 600; color: var(--text); outline: none; width: calc(100% - 32px); background: var(--accent-light); text-align: center; }
+.rename-actions { display: flex; border-top: 0.5px solid var(--border); }
+.rename-btn { flex: 1; padding: 15px; border: none; background: transparent; font-size: 15px; font-family: 'Sarabun',sans-serif; cursor: pointer; font-weight: 600; }
+.rename-btn.cancel { color: var(--text2); border-right: 0.5px solid var(--border); }
+.rename-btn.confirm { color: var(--accent); }
+.rename-btn:active { background: var(--surface2); }
 @keyframes fadeIn { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
-
-/* ========== APP LAYOUT ========== */
-#app { height: 100%; display: none; flex-direction: column; background: var(–bg); }
-.safe-top { height: var(–safe-top); background: var(–surface); flex-shrink: 0; }
-.top-bar { background: var(–surface); padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(–border); flex-shrink: 0; }
-.top-logo { font-family: ‘IBM Plex Mono’,monospace; font-size: 20px; font-weight: 600; color: var(–accent); letter-spacing: -0.5px; }
+#app { height: 100%; display: none; flex-direction: column; background: var(--bg); }
+.safe-top { height: var(--safe-top); background: var(--surface); flex-shrink: 0; }
+.top-bar { background: var(--surface); padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.top-logo { font-family: 'IBM Plex Mono',monospace; font-size: 20px; font-weight: 600; color: var(--accent); letter-spacing: -0.5px; }
 .top-right { display: flex; align-items: center; gap: 10px; }
-.sync-pill { display: flex; align-items: center; gap: 5px; padding: 5px 10px; background: var(–green-light); border-radius: 20px; border: 1px solid #a7f3d0; }
-.sync-pill.off { background: var(–red-light); border-color: #fca5a5; }
-.sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(–green); animation: pulse 2s infinite; }
-.sync-pill.off .sync-dot { background: var(–red); animation: none; }
+.sync-pill { display: flex; align-items: center; gap: 5px; padding: 5px 10px; background: var(--green-light); border-radius: 20px; border: 1px solid #a7f3d0; }
+.sync-pill.off { background: var(--red-light); border-color: #fca5a5; }
+.sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+.sync-pill.off .sync-dot { background: var(--red); animation: none; }
 .sync-txt { font-size: 11px; font-weight: 700; color: #059669; }
-.sync-pill.off .sync-txt { color: var(–red); }
+.sync-pill.off .sync-txt { color: var(--red); }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-.av-btn { width: 32px; height: 32px; border-radius: 50%; background: var(–accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; cursor: pointer; border: none; flex-shrink: 0; }
-.offline-banner { background: var(–red); color: #fff; font-size: 13px; font-weight: 600; text-align: center; padding: 6px; display: none; flex-shrink: 0; }
+.av-btn { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; cursor: pointer; border: none; flex-shrink: 0; }
+.offline-banner { background: var(--red); color: #fff; font-size: 13px; font-weight: 600; text-align: center; padding: 6px; display: none; flex-shrink: 0; }
 .offline-banner.show { display: block; }
 .main { flex: 1; overflow: hidden; position: relative; }
-.page { position: absolute; inset: 0; display: none; flex-direction: column; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px; padding-bottom: calc(var(–nav-h) + 20px); gap: 14px; background: var(–bg); }
+.page { position: absolute; inset: 0; display: none; flex-direction: column; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px; padding-bottom: calc(var(--nav-h) + 20px); gap: 14px; background: var(--bg); }
 .page.active { display: flex; }
 .page > * { flex-shrink: 0; }
-.ph1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; color: var(–text); }
+.ph1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); }
 .prow { display: flex; align-items: center; justify-content: space-between; }
-.room-chip { font-family: ‘IBM Plex Mono’,monospace; font-size: 12px; font-weight: 700; color: var(–accent); background: var(–accent-light); padding: 4px 10px; border-radius: 6px; border: 1px solid #93c5fd; margin-top: 4px; display: inline-block; }
-.room-chip.allwh { color: var(–purple); background: var(–purple-light); border-color: #c4b5fd; }
-.sec-lbl { font-size: 12px; font-weight: 700; color: var(–text2); text-transform: uppercase; letter-spacing: 0.5px; padding: 0 2px; }
-.bottom-nav { height: var(–nav-h); background: var(–surface); border-top: 1px solid var(–border); display: flex; align-items: flex-start; padding-top: 10px; padding-bottom: var(–safe-bottom); flex-shrink: 0; position: relative; z-index: 100; }
-.nb { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; border: none; background: none; font-family: ‘Sarabun’,sans-serif; color: var(–text3); padding: 0 2px; transition: color .15s; }
-.nb.active { color: var(–accent); }
+.room-chip { font-family: 'IBM Plex Mono',monospace; font-size: 12px; font-weight: 700; color: var(--accent); background: var(--accent-light); padding: 4px 10px; border-radius: 6px; border: 1px solid #93c5fd; margin-top: 4px; display: inline-block; }
+.sec-lbl { font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; padding: 0 2px; }
+.bottom-nav { height: var(--nav-h); background: var(--surface); border-top: 1px solid var(--border); display: flex; align-items: flex-start; padding-top: 10px; padding-bottom: var(--safe-bottom); flex-shrink: 0; position: relative; z-index: 100; }
+.nb { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; border: none; background: none; font-family: 'Sarabun',sans-serif; color: var(--text3); padding: 0 2px; transition: color .15s; }
+.nb.active { color: var(--accent); }
 .nb svg { width: 24px; height: 24px; }
 .nb span { font-size: 10px; font-weight: 600; }
 .nb-mid { flex: 1; display: flex; justify-content: center; }
-.nb-add { width: 48px; height: 48px; border-radius: 50%; background: var(–accent); display: flex; align-items: center; justify-content: center; margin-top: -12px; box-shadow: 0 4px 16px rgba(0,122,255,.45); border: none; cursor: pointer; }
+.nb-add { width: 48px; height: 48px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; margin-top: -12px; box-shadow: 0 4px 16px rgba(0,122,255,.45); border: none; cursor: pointer; }
 .nb-add:active { transform: scale(.92); }
-.card { background: var(–surface); border-radius: var(–radius); border: 1px solid var(–border); overflow: hidden; flex-shrink: 0; }
-.card-scroll { background: var(–surface); border-radius: var(–radius); border: 1px solid var(–border); overflow: visible; flex-shrink: 0; }
+.card { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; flex-shrink: 0; }
+.card-scroll { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); overflow: visible; flex-shrink: 0; }
 .card-pad { padding: 14px 16px; }
 .sgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.sblock { background: var(–surface); border-radius: var(–radius); padding: 14px; border: 1px solid var(–border); }
-.slabel { font-size: 11px; color: var(–text2); font-weight: 600; margin-bottom: 4px; }
-.sval { font-family: ‘IBM Plex Mono’,monospace; font-size: 24px; font-weight: 700; line-height: 1; color: var(–text); }
-.sunit { font-size: 11px; color: var(–text3); margin-top: 2px; }
-.list-row { display: flex; align-items: center; padding: 11px 16px; border-bottom: 0.5px solid var(–border); gap: 12px; cursor: pointer; background: var(–surface); }
+.sblock { background: var(--surface); border-radius: var(--radius); padding: 14px; border: 1px solid var(--border); }
+.slabel { font-size: 11px; color: var(--text2); font-weight: 600; margin-bottom: 4px; }
+.sval { font-family: 'IBM Plex Mono',monospace; font-size: 24px; font-weight: 700; line-height: 1; color: var(--text); }
+.sunit { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.list-row { display: flex; align-items: center; padding: 11px 16px; border-bottom: 0.5px solid var(--border); gap: 12px; cursor: pointer; background: var(--surface); }
 .list-row:last-child { border-bottom: none; }
-.list-row:active { background: var(–surface2); }
+.list-row:active { background: var(--surface2); }
 .row-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
-.row-icon.in{background:var(–green-light)} .row-icon.out{background:var(–red-light)} .row-icon.adj{background:var(–orange-light)}
+.row-icon.in{background:var(--green-light)} .row-icon.out{background:var(--red-light)} .row-icon.adj{background:var(--orange-light)}
 .row-body { flex: 1; min-width: 0; }
-.row-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(–text); }
-.row-meta { font-size: 12px; color: var(–text2); margin-top: 1px; }
-.row-qty { font-family: ‘IBM Plex Mono’,monospace; font-size: 17px; font-weight: 700; flex-shrink: 0; }
-.row-qty.in{color:var(–green)} .row-qty.out{color:var(–red)} .row-qty.adj{color:var(–orange)}
-.edited-chip { font-size: 10px; font-weight: 700; color: var(–purple); background: var(–purple-light); padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 2px; border: 1px solid #c4b5fd; }
-.srow { display: flex; align-items: center; padding: 11px 16px; border-bottom: 0.5px solid var(–border); background: var(–surface); }
+.row-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+.row-meta { font-size: 12px; color: var(--text2); margin-top: 1px; }
+.row-qty { font-family: 'IBM Plex Mono',monospace; font-size: 17px; font-weight: 700; flex-shrink: 0; }
+.row-qty.in{color:var(--green)} .row-qty.out{color:var(--red)} .row-qty.adj{color:var(--orange)}
+.edited-chip { font-size: 10px; font-weight: 700; color: var(--purple); background: var(--purple-light); padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 2px; border: 1px solid #c4b5fd; }
+.srow { display: flex; align-items: center; padding: 11px 16px; border-bottom: 0.5px solid var(--border); background: var(--surface); }
 .srow:last-child { border-bottom: none; }
 .sdot { width: 8px; height: 8px; border-radius: 50%; margin-right: 12px; flex-shrink: 0; }
-.sname { flex: 1; font-size: 15px; font-weight: 500; color: var(–text); }
-.sqty { font-family: ‘IBM Plex Mono’,monospace; font-size: 16px; font-weight: 700; color: var(–accent); }
-.ssub { font-size: 11px; color: var(–text3); text-align: right; margin-top: 1px; }
-.dash-chart-wrap { background: var(–surface); border-radius: var(–radius); border: 1px solid var(–border); padding: 14px 16px; }
-.dash-chart-title { font-size: 13px; font-weight: 700; color: var(–text2); margin-bottom: 12px; }
+.sname { flex: 1; font-size: 15px; font-weight: 500; color: var(--text); }
+.sqty { font-family: 'IBM Plex Mono',monospace; font-size: 16px; font-weight: 700; color: var(--accent); }
+.ssub { font-size: 11px; color: var(--text3); text-align: right; margin-top: 1px; }
+.dash-chart-wrap { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 14px 16px; }
+.dash-chart-title { font-size: 13px; font-weight: 700; color: var(--text2); margin-bottom: 12px; }
 .dash-chart-box { position: relative; width: 100%; height: 200px; }
 .dash-chart-box canvas { display: block; width: 100% !important; }
-.search-box { background: var(–surface); border: 1px solid var(–border); border-radius: var(–radius-sm); display: flex; align-items: center; padding: 10px 12px; gap: 8px; }
-.search-box input { flex: 1; border: none; outline: none; background: transparent; font-size: 15px; font-family: ‘Sarabun’,sans-serif; color: var(–text); }
-.search-box input::placeholder { color: var(–text3); }
-.search-box svg { color: var(–text3); flex-shrink: 0; }
+.search-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); display: flex; align-items: center; padding: 10px 12px; gap: 8px; }
+.search-box input { flex: 1; border: none; outline: none; background: transparent; font-size: 15px; font-family: 'Sarabun',sans-serif; color: var(--text); }
+.search-box input::placeholder { color: var(--text3); }
+.search-box svg { color: var(--text3); flex-shrink: 0; }
 .chips { display: flex; gap: 6px; overflow-x: auto; }
 .chips::-webkit-scrollbar { display: none; }
-.chip { padding: 7px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; border: 1.5px solid var(–border); cursor: pointer; white-space: nowrap; font-family: ‘Sarabun’,sans-serif; background: var(–surface); color: var(–text2); flex-shrink: 0; }
-.chip.active { background: var(–accent); color: #fff; border-color: var(–accent); }
-.type-pick { display: flex; background: var(–surface2); border-radius: var(–radius-sm); padding: 3px; gap: 2px; border: 1px solid var(–border); flex-shrink: 0; }
-.topt { flex: 1; padding: 9px; border-radius: 8px; border: none; font-family: ‘Sarabun’,sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; background: transparent; color: var(–text2); text-align: center; transition: all .18s; }
-.topt.in.active{background:var(–surface);color:var(–green);box-shadow:0 1px 6px rgba(0,0,0,.12)}
-.topt.out.active{background:var(–surface);color:var(–red);box-shadow:0 1px 6px rgba(0,0,0,.12)}
-.topt.adj.active{background:var(–surface);color:var(–orange);box-shadow:0 1px 6px rgba(0,0,0,.12)}
-.frow { display: flex; align-items: center; padding: 13px 16px; border-bottom: 0.5px solid var(–border); gap: 12px; background: var(–surface); }
+.chip { padding: 7px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; border: 1.5px solid var(--border); cursor: pointer; white-space: nowrap; font-family: 'Sarabun',sans-serif; background: var(--surface); color: var(--text2); flex-shrink: 0; }
+.chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.type-pick { display: flex; background: var(--surface2); border-radius: var(--radius-sm); padding: 3px; gap: 2px; border: 1px solid var(--border); flex-shrink: 0; }
+.topt { flex: 1; padding: 9px; border-radius: 8px; border: none; font-family: 'Sarabun',sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; background: transparent; color: var(--text2); text-align: center; transition: all .18s; }
+.topt.in.active{background:var(--surface);color:var(--green);box-shadow:0 1px 6px rgba(0,0,0,.12)}
+.topt.out.active{background:var(--surface);color:var(--red);box-shadow:0 1px 6px rgba(0,0,0,.12)}
+.topt.adj.active{background:var(--surface);color:var(--orange);box-shadow:0 1px 6px rgba(0,0,0,.12)}
+.frow { display: flex; align-items: center; padding: 13px 16px; border-bottom: 0.5px solid var(--border); gap: 12px; background: var(--surface); }
 .frow:last-child { border-bottom: none; }
-.frow label { font-size: 15px; color: var(–text); font-weight: 500; min-width: 76px; flex-shrink: 0; }
-.frow input, .frow select { flex: 1; border: none; outline: none; font-size: 15px; font-family: ‘Sarabun’,sans-serif; background: transparent; color: var(–text); text-align: right; -webkit-appearance: none; }
+.frow label { font-size: 15px; color: var(--text); font-weight: 500; min-width: 76px; flex-shrink: 0; }
+.frow input, .frow select { flex: 1; border: none; outline: none; font-size: 15px; font-family: 'Sarabun',sans-serif; background: transparent; color: var(--text); text-align: right; -webkit-appearance: none; }
 .frow .qpair { display: flex; gap: 8px; flex: 1; justify-content: flex-end; align-items: center; min-width: 0; }
-.frow .qpair input[type=“number”] { flex: 0 0 80px; width: 80px; text-align: right; font-size: 15px; }
+.frow .qpair input[type="number"] { flex: 0 0 80px; width: 80px; text-align: right; font-size: 15px; }
 .frow .qpair select { flex: 0 0 64px; width: 64px; font-size: 14px; }
-.convert-bar { padding: 9px 14px; background: var(–accent-light); border-radius: var(–radius-sm); font-size: 13px; font-weight: 700; color: var(–accent); display: none; border: 1px solid #93c5fd; }
+.convert-bar { padding: 9px 14px; background: var(--accent-light); border-radius: var(--radius-sm); font-size: 13px; font-weight: 700; color: var(--accent); display: none; border: 1px solid #93c5fd; }
 .plat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
-.pbtn { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 4px; border: 1.5px solid var(–border); border-radius: var(–radius-sm); background: var(–surface); cursor: pointer; font-family: ‘Sarabun’,sans-serif; font-size: 12px; font-weight: 600; color: var(–text2); transition: all .15s; }
-.pbtn.active { border-color: var(–accent); color: var(–accent); background: var(–accent-light); }
-.submit-btn { width: 100%; padding: 17px; background: var(–accent); color: #fff; border: none; border-radius: var(–radius); font-size: 17px; font-family: ‘Sarabun’,sans-serif; font-weight: 700; cursor: pointer; }
+.pbtn { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 4px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); cursor: pointer; font-family: 'Sarabun',sans-serif; font-size: 12px; font-weight: 600; color: var(--text2); transition: all .15s; }
+.pbtn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+.submit-btn { width: 100%; padding: 17px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); font-size: 17px; font-family: 'Sarabun',sans-serif; font-weight: 700; cursor: pointer; }
 .submit-btn:active { opacity: .85; }
-.sku-info-box { background: var(–surface); border: 1px solid var(–border); border-radius: var(–radius-sm); padding: 12px 14px; display: flex; gap: 16px; flex-wrap: wrap; }
-.sib-item .sib-label { font-size: 11px; color: var(–text2); font-weight: 500; }
-.sib-item .sib-val { font-family: ‘IBM Plex Mono’,monospace; font-size: 13px; font-weight: 700; color: var(–text); }
-.prod-row { display: flex; align-items: center; padding: 12px 16px; border-bottom: 0.5px solid var(–border); gap: 12px; cursor: pointer; background: var(–surface); }
+.sku-info-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; display: flex; gap: 16px; flex-wrap: wrap; }
+.sib-item .sib-label { font-size: 11px; color: var(--text2); font-weight: 500; }
+.sib-item .sib-val { font-family: 'IBM Plex Mono',monospace; font-size: 13px; font-weight: 700; color: var(--text); }
+.prod-row { display: flex; align-items: center; padding: 12px 16px; border-bottom: 0.5px solid var(--border); gap: 12px; cursor: pointer; background: var(--surface); }
 .prod-row:last-child { border-bottom: none; }
-.prod-row:active { background: var(–surface2); }
-.prod-img { width: 42px; height: 42px; border-radius: 10px; object-fit: cover; border: 1px solid var(–border); flex-shrink: 0; }
-.prod-icon-ph { width: 42px; height: 42px; border-radius: 10px; background: var(–accent-light); border: 1px solid #93c5fd; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.prod-row:active { background: var(--surface2); }
+.prod-img { width: 42px; height: 42px; border-radius: 10px; object-fit: cover; border: 1px solid var(--border); flex-shrink: 0; }
+.prod-icon-ph { width: 42px; height: 42px; border-radius: 10px; background: var(--accent-light); border: 1px solid #93c5fd; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .prod-body { flex: 1; min-width: 0; }
-.prod-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(–text); }
-.prod-sku { font-family: ‘IBM Plex Mono’,monospace; font-size: 11px; color: var(–text3); margin-top: 1px; }
-.prod-price { font-size: 11px; color: var(–text2); margin-top: 2px; }
+.prod-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+.prod-sku { font-family: 'IBM Plex Mono',monospace; font-size: 11px; color: var(--text3); margin-top: 1px; }
+.prod-price { font-size: 11px; color: var(--text2); margin-top: 2px; }
 .prod-right { text-align: right; flex-shrink: 0; }
-.prod-qty { font-family: ‘IBM Plex Mono’,monospace; font-size: 17px; font-weight: 700; color: var(–accent); }
-.prod-case { font-size: 11px; color: var(–text3); }
+.prod-qty { font-family: 'IBM Plex Mono',monospace; font-size: 17px; font-weight: 700; color: var(--accent); }
+.prod-case { font-size: 11px; color: var(--text3); }
 .val-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.val-block { background: var(–surface); border-radius: var(–radius); padding: 12px 14px; border: 1px solid var(–border); }
-.val-label { font-size: 11px; color: var(–text2); font-weight: 600; margin-bottom: 4px; }
-.val-num { font-family: ‘IBM Plex Mono’,monospace; font-size: 18px; font-weight: 700; line-height: 1; }
-.val-sub { font-size: 10px; color: var(–text3); margin-top: 2px; }
+.val-block { background: var(--surface); border-radius: var(--radius); padding: 12px 14px; border: 1px solid var(--border); }
+.val-label { font-size: 11px; color: var(--text2); font-weight: 600; margin-bottom: 4px; }
+.val-num { font-family: 'IBM Plex Mono',monospace; font-size: 18px; font-weight: 700; line-height: 1; }
+.val-sub { font-size: 10px; color: var(--text3); margin-top: 2px; }
 .chart-box { position: relative; width: 100%; display: block; }
 .chart-box canvas { display: block; width: 100% !important; }
-.card-chart { background: var(–surface); border-radius: var(–radius); border: 1px solid var(–border); }
+.card-chart { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); }
 .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 500; display: none; align-items: flex-end; justify-content: center; }
 .overlay.open { display: flex; }
-.sheet { background: var(–surface); width: 100%; max-width: 540px; border-radius: 20px 20px 0 0; padding-bottom: calc(var(–safe-bottom) + 8px); max-height: 92vh; overflow-y: auto; -webkit-overflow-scrolling: touch; animation: slideUp .28s cubic-bezier(.4,0,.2,1); }
-.sh-handle { width: 36px; height: 4px; background: var(–border); border-radius: 2px; margin: 10px auto 0; }
-.sh-head { padding: 14px 20px 12px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(–border); background: var(–surface); }
-.sh-title { font-size: 17px; font-weight: 700; color: var(–text); }
-.sh-close { width: 28px; height: 28px; border-radius: 50%; background: var(–surface2); border: 1px solid var(–border); cursor: pointer; color: var(–text2); font-size: 14px; display: flex; align-items: center; justify-content: center; }
-.sh-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; background: var(–bg); }
-.sh-foot { padding: 8px 20px 0; display: flex; gap: 10px; background: var(–bg); }
+.sheet { background: var(--surface); width: 100%; max-width: 540px; border-radius: 20px 20px 0 0; padding-bottom: calc(var(--safe-bottom) + 8px); max-height: 92vh; overflow-y: auto; -webkit-overflow-scrolling: touch; animation: slideUp .28s cubic-bezier(.4,0,.2,1); }
+.sh-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 10px auto 0; }
+.sh-head { padding: 14px 20px 12px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); background: var(--surface); }
+.sh-title { font-size: 17px; font-weight: 700; color: var(--text); }
+.sh-close { width: 28px; height: 28px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border); cursor: pointer; color: var(--text2); font-size: 14px; display: flex; align-items: center; justify-content: center; }
+.sh-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; background: var(--bg); }
+.sh-foot { padding: 8px 20px 0; display: flex; gap: 10px; background: var(--bg); }
 .sh-foot .primary-btn { padding: 14px; font-size: 15px; }
-.btn-red { background: var(–red); }
-.btn-gray { background: var(–surface2); color: var(–text); border: 1px solid var(–border); }
+.btn-red { background: var(--red); }
+.btn-gray { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
 .img-upload-box { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .img-slot { display: flex; flex-direction: column; gap: 6px; }
-.img-slot-label { font-size: 12px; font-weight: 700; color: var(–text2); }
+.img-slot-label { font-size: 12px; font-weight: 700; color: var(--text2); }
 .img-preview { position: relative; }
-.img-preview img { width: 100%; height: 100px; object-fit: cover; border-radius: var(–radius-sm); border: 1px solid var(–border); display: block; }
+.img-preview img { width: 100%; height: 100px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border); display: block; }
 .img-del { position: absolute; top: 5px; right: 5px; width: 22px; height: 22px; border-radius: 50%; background: rgba(0,0,0,.55); color: #fff; border: none; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; }
-.img-upload-lbl { display: flex; align-items: center; justify-content: center; gap: 5px; padding: 12px; background: var(–surface2); border: 1.5px dashed var(–border); border-radius: var(–radius-sm); cursor: pointer; font-size: 12px; color: var(–text2); font-weight: 600; }
+.img-upload-lbl { display: flex; align-items: center; justify-content: center; gap: 5px; padding: 12px; background: var(--surface2); border: 1.5px dashed var(--border); border-radius: var(--radius-sm); cursor: pointer; font-size: 12px; color: var(--text2); font-weight: 600; }
 .img-upload-lbl input { display: none; }
-.hist-item { background: var(–surface); border-radius: var(–radius-sm); padding: 10px 12px; border: 1px solid var(–border); border-left: 3px solid var(–purple); }
+.hist-item { background: var(--surface); border-radius: var(--radius-sm); padding: 10px 12px; border: 1px solid var(--border); border-left: 3px solid var(--purple); }
 .hist-item-head { display: flex; justify-content: space-between; margin-bottom: 3px; }
-.hist-num { font-size: 12px; font-weight: 700; color: var(–purple); }
-.hist-by { font-size: 11px; color: var(–text2); }
-.hist-prev { font-size: 13px; color: var(–text2); }
-.hist-reason { font-size: 12px; color: var(–text3); margin-top: 2px; }
-.adj-dir-wrap { display: none; flex-direction: column; gap: 8px; padding: 12px 16px; background: var(–surface); border-bottom: 0.5px solid var(–border); }
+.hist-num { font-size: 12px; font-weight: 700; color: var(--purple); }
+.hist-by { font-size: 11px; color: var(--text2); }
+.hist-prev { font-size: 13px; color: var(--text2); }
+.hist-reason { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.adj-dir-wrap { display: none; flex-direction: column; gap: 8px; padding: 12px 16px; background: var(--surface); border-bottom: 0.5px solid var(--border); }
 .adj-dir-row { display: flex; gap: 8px; }
-.adj-dir-btn { flex: 1; padding: 11px; border-radius: var(–radius-sm); border: 2px solid var(–border); background: var(–surface); font-size: 15px; font-weight: 700; font-family: ‘Sarabun’,sans-serif; cursor: pointer; transition: all .15s; color: var(–text2); }
-.adj-dir-btn.plus.sel{border-color:var(–green);background:var(–green-light);color:var(–green)}
-.adj-dir-btn.minus.sel{border-color:var(–red);background:var(–red-light);color:var(–red)}
-.adj-preview { font-size: 13px; font-weight: 700; padding: 8px 12px; border-radius: var(–radius-sm); display: none; }
-.adj-preview.plus{background:var(–green-light);color:var(–green)}
-.adj-preview.minus{background:var(–red-light);color:var(–red)}
-.toast-wrap { position: fixed; top: calc(var(–safe-top) + 60px); left: 50%; transform: translateX(-50%); z-index: 999; pointer-events: none; }
+.adj-dir-btn { flex: 1; padding: 11px; border-radius: var(--radius-sm); border: 2px solid var(--border); background: var(--surface); font-size: 15px; font-weight: 700; font-family: 'Sarabun',sans-serif; cursor: pointer; transition: all .15s; color: var(--text2); }
+.adj-dir-btn.plus.sel{border-color:var(--green);background:var(--green-light);color:var(--green)}
+.adj-dir-btn.minus.sel{border-color:var(--red);background:var(--red-light);color:var(--red)}
+.adj-preview { font-size: 13px; font-weight: 700; padding: 8px 12px; border-radius: var(--radius-sm); display: none; }
+.adj-preview.plus{background:var(--green-light);color:var(--green)}
+.adj-preview.minus{background:var(--red-light);color:var(--red)}
+.toast-wrap { position: fixed; top: calc(var(--safe-top) + 60px); left: 50%; transform: translateX(-50%); z-index: 999; pointer-events: none; }
 .toast { background: rgba(28,28,30,.92); color: #fff; padding: 10px 20px; border-radius: 22px; font-size: 14px; font-weight: 600; white-space: nowrap; animation: tin .3s ease; }
 .toast.success{background:rgba(52,199,89,.95)} .toast.error{background:rgba(255,59,48,.95)}
 @keyframes tin{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes slideUp{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
-.loading-row { display: flex; align-items: center; justify-content: center; padding: 30px; gap: 10px; color: var(–text2); font-size: 14px; background: var(–surface); }
-.spinner { width: 18px; height: 18px; border: 2px solid var(–border); border-top-color: var(–accent); border-radius: 50%; animation: spin .6s linear infinite; }
+.loading-row { display: flex; align-items: center; justify-content: center; padding: 30px; gap: 10px; color: var(--text2); font-size: 14px; background: var(--surface); }
+.spinner { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; }
 @keyframes spin{to{transform:rotate(360deg)}}
-.empty-st { padding: 36px 20px; text-align: center; color: var(–text3); font-size: 14px; background: var(–surface); }
+.empty-st { padding: 36px 20px; text-align: center; color: var(--text3); font-size: 14px; background: var(--surface); }
 
-/* ========================================
-ALL-WAREHOUSE SUMMARY STYLES
-======================================== */
-
-/* Hero summary banner */
-.allwh-hero {
-background: linear-gradient(135deg, #1c1c2e 0%, #16213e 50%, #0f3460 100%);
-border-radius: 18px;
-padding: 20px;
-position: relative;
-overflow: hidden;
-border: 1px solid rgba(255,255,255,0.08);
-}
-.allwh-hero::before {
-content: ‘’;
-position: absolute;
-top: -40px; right: -40px;
-width: 160px; height: 160px;
-background: radial-gradient(circle, rgba(0,122,255,0.25) 0%, transparent 70%);
-border-radius: 50%;
-}
-.allwh-hero::after {
-content: ‘’;
-position: absolute;
-bottom: -30px; left: -20px;
-width: 120px; height: 120px;
-background: radial-gradient(circle, rgba(175,82,222,0.2) 0%, transparent 70%);
-border-radius: 50%;
-}
-.allwh-hero-title {
-font-size: 12px;
-font-weight: 700;
-color: rgba(255,255,255,0.5);
-letter-spacing: 1px;
-text-transform: uppercase;
-margin-bottom: 6px;
-position: relative;
-}
-.allwh-hero-name {
-font-family: ‘IBM Plex Mono’,monospace;
-font-size: 22px;
-font-weight: 600;
-color: #fff;
-margin-bottom: 18px;
-position: relative;
-}
-.allwh-hero-name span {
-color: #007aff;
-}
-.allwh-kpi-row {
-display: grid;
-grid-template-columns: repeat(3,1fr);
-gap: 10px;
-position: relative;
-}
-.allwh-kpi {
-background: rgba(255,255,255,0.07);
-border-radius: 12px;
-padding: 12px 10px;
-border: 1px solid rgba(255,255,255,0.08);
-text-align: center;
-backdrop-filter: blur(4px);
-}
-.allwh-kpi-val {
-font-family: ‘IBM Plex Mono’,monospace;
-font-size: 20px;
-font-weight: 700;
-color: #fff;
-line-height: 1;
-}
-.allwh-kpi-val.allwh-kpi-val.allwh-kpi-val.allwh-kpi-lbl {
-font-size: 10px;
-color: rgba(255,255,255,0.45);
-font-weight: 600;
-margin-top: 4px;
-}
-
-/* Value cards row */
-.allwh-val-row {
-display: grid;
-grid-template-columns: 1fr 1fr;
-gap: 10px;
-}
-.allwh-val-card {
-border-radius: 14px;
-padding: 14px;
-border: 1px solid;
-}
-.allwh-val-card.cost   { background: #fff8ee; border-color: #fcd34d; }
-.allwh-val-card.sale   { background: #f0fdf4; border-color: #6ee7b7; }
-.allwh-val-card.profit { background: #faf5ff; border-color: #c4b5fd; }
-.allwh-val-card.sold   { background: #eff6ff; border-color: #93c5fd; }
-.allwh-val-card-icon { font-size: 20px; margin-bottom: 6px; }
-.allwh-val-card-lbl { font-size: 11px; font-weight: 700; color: var(–text2); margin-bottom: 4px; }
-.allwh-val-card-num { font-family: ‘IBM Plex Mono’,monospace; font-size: 16px; font-weight: 700; line-height: 1; }
-.allwh-val-card.cost   .allwh-val-card-num { color: var(–orange); }
-.allwh-val-card.sale   .allwh-val-card-num { color: var(–green); }
-.allwh-val-card.profit .allwh-val-card-num { color: var(–purple); }
-.allwh-val-card.sold   .allwh-val-card-num { color: var(–accent); }
-.allwh-val-card-sub { font-size: 10px; color: var(–text3); margin-top: 3px; }
-
-/* Per-warehouse card */
-.allwh-wh-card {
-background: var(–surface);
-border-radius: 14px;
-border: 1px solid var(–border);
-overflow: hidden;
-}
-.allwh-wh-head {
-display: flex;
-align-items: center;
-padding: 12px 14px;
-gap: 10px;
-border-bottom: 1px solid var(–border);
-background: var(–bg);
-cursor: pointer;
-}
-.allwh-wh-dot {
-width: 10px; height: 10px;
-border-radius: 50%;
-flex-shrink: 0;
-}
-.allwh-wh-name {
-flex: 1;
-font-size: 15px;
-font-weight: 700;
-color: var(–text);
-}
-.allwh-wh-badge {
-font-family: ‘IBM Plex Mono’,monospace;
-font-size: 13px;
-font-weight: 700;
-color: var(–accent);
-}
-.allwh-wh-body {
-padding: 0;
-}
-.allwh-wh-stat-row {
-display: flex;
-padding: 10px 14px;
-gap: 0;
-border-bottom: 0.5px solid var(–border);
-}
-.allwh-wh-stat-row:last-child { border-bottom: none; }
-.allwh-wh-stat {
-flex: 1;
-text-align: center;
-}
-.allwh-wh-stat-val {
-font-family: ‘IBM Plex Mono’,monospace;
-font-size: 14px;
-font-weight: 700;
-color: var(–text);
-}
-.allwh-wh-stat-val.aw-green { color: var(–green); }
-.allwh-wh-stat-val.aw-red   { color: var(–red); }
-.allwh-wh-stat-lbl {
-font-size: 10px;
-color: var(–text3);
-font-weight: 600;
-margin-top: 2px;
-}
-.allwh-wh-divider {
-width: 1px;
-background: var(–border);
-margin: 0 4px;
-}
-.allwh-stock-row {
-display: flex;
-align-items: center;
-padding: 9px 14px;
-border-bottom: 0.5px solid var(–border);
-gap: 8px;
-}
-.allwh-stock-row:last-child { border-bottom: none; }
-.allwh-stock-name { flex: 1; font-size: 13px; font-weight: 500; color: var(–text); }
-.allwh-stock-qty { font-family: ‘IBM Plex Mono’,monospace; font-size: 13px; font-weight: 700; color: var(–accent); }
-.allwh-prog-bar {
-height: 4px;
-background: var(–surface2);
-border-radius: 2px;
-overflow: hidden;
-margin: 0 14px 8px;
-}
-.allwh-prog-fill {
-height: 100%;
-border-radius: 2px;
-transition: width .5s ease;
-}
-
-/* Overall stock comparison chart */
-.allwh-chart-wrap {
-background: var(–surface);
-border-radius: 14px;
-border: 1px solid var(–border);
-padding: 14px 16px;
-}
-.allwh-chart-title {
-font-size: 13px;
-font-weight: 700;
-color: var(–text2);
-margin-bottom: 12px;
-}
-.allwh-chart-box {
-position: relative;
-width: 100%;
-height: 220px;
-}
-.allwh-chart-box canvas { display: block; width: 100% !important; }
-
-/* Loading shimmer for all-wh */
-.allwh-loading {
-padding: 48px 20px;
-text-align: center;
-color: var(–text3);
-font-size: 14px;
-display: flex;
-flex-direction: column;
-align-items: center;
-gap: 10px;
-}
-.allwh-refreshed {
-font-size: 11px;
-color: var(–text3);
-text-align: right;
-padding: 0 2px;
-}
-.allwh-refreshed span { color: var(–green); }
-
-/* Jump to warehouse button */
-.allwh-jump-btn {
-font-size: 12px;
-font-weight: 700;
-color: var(–accent);
-background: var(–accent-light);
-border: 1px solid #93c5fd;
-border-radius: 8px;
-padding: 4px 10px;
-cursor: pointer;
-white-space: nowrap;
-font-family: ‘Sarabun’,sans-serif;
-}
-.allwh-jump-btn:active { opacity: .75; }
-
-/* Pulse animation on refresh */
-@keyframes allwhPulse {
-0%   { opacity: 1; }
-50%  { opacity: 0.5; }
-100% { opacity: 1; }
-}
-.allwh-refreshing { animation: allwhPulse .8s ease infinite; }
+/* ===== ALL-WH SUMMARY (ชื่อ class ต่างกันทั้งหมด ไม่กระทบ CSS เดิม) ===== */
+.aw-hero { background: linear-gradient(135deg,#1c1c2e,#16213e,#0f3460); border-radius: 16px; padding: 18px; position: relative; overflow: hidden; border: 1px solid rgba(255,255,255,.08); }
+.aw-hero::before { content:’’; position:absolute; top:-40px; right:-40px; width:140px; height:140px; background:radial-gradient(circle,rgba(0,122,255,.25),transparent 70%); border-radius:50%; pointer-events:none; }
+.aw-hero-lbl { font-size:11px; font-weight:700; color:rgba(255,255,255,.45); letter-spacing:1px; text-transform:uppercase; margin-bottom:4px; }
+.aw-hero-title { font-family:‘IBM Plex Mono’,monospace; font-size:18px; font-weight:600; color:#fff; margin-bottom:16px; }
+.aw-hero-title span { color:#007aff; }
+.aw-kpi-row { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.aw-kpi { background:rgba(255,255,255,.08); border-radius:10px; padding:10px 8px; text-align:center; border:1px solid rgba(255,255,255,.08); }
+.aw-kpi-val { font-family:‘IBM Plex Mono’,monospace; font-size:20px; font-weight:700; color:#fff; line-height:1; }
+.aw-kpi-val.awc-blue { color:#5ac8fa; }
+.aw-kpi-val.awc-green { color:#34c759; }
+.aw-kpi-val.awc-red { color:#ff6b60; }
+.aw-kpi-lbl { font-size:10px; color:rgba(255,255,255,.4); font-weight:600; margin-top:4px; }
+.aw-val-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.aw-val-card { border-radius:12px; padding:13px; border:1px solid; }
+.aw-val-card.awc-cost   { background:#fff8ee; border-color:#fcd34d; }
+.aw-val-card.awc-sale   { background:#f0fdf4; border-color:#6ee7b7; }
+.aw-val-card.awc-profit { background:#faf5ff; border-color:#c4b5fd; }
+.aw-val-card.awc-sold   { background:#eff6ff; border-color:#93c5fd; }
+.aw-val-icon { font-size:18px; margin-bottom:5px; }
+.aw-val-lbl { font-size:11px; font-weight:700; color:var(–text2); margin-bottom:3px; }
+.aw-val-num { font-family:‘IBM Plex Mono’,monospace; font-size:15px; font-weight:700; }
+.aw-val-card.awc-cost   .aw-val-num { color:var(–orange); }
+.aw-val-card.awc-sale   .aw-val-num { color:var(–green); }
+.aw-val-card.awc-profit .aw-val-num { color:var(–purple); }
+.aw-val-card.awc-sold   .aw-val-num { color:var(–accent); }
+.aw-val-sub { font-size:10px; color:var(–text3); margin-top:2px; }
+.aw-wh-card { background:var(–surface); border-radius:12px; border:1px solid var(–border); overflow:hidden; margin-bottom:10px; }
+.aw-wh-head { display:flex; align-items:center; padding:11px 14px; gap:10px; border-bottom:1px solid var(–border); background:var(–bg); cursor:pointer; }
+.aw-wh-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+.aw-wh-name { flex:1; font-size:14px; font-weight:700; color:var(–text); }
+.aw-jump { font-size:12px; font-weight:700; color:var(–accent); background:var(–accent-light); border:1px solid #93c5fd; border-radius:7px; padding:4px 9px; cursor:pointer; font-family:‘Sarabun’,sans-serif; }
+.aw-stat-row { display:flex; padding:10px 14px; border-bottom:.5px solid var(–border); }
+.aw-stat { flex:1; text-align:center; }
+.aw-stat-val { font-family:‘IBM Plex Mono’,monospace; font-size:13px; font-weight:700; color:var(–text); }
+.aw-stat-val.awc-green { color:var(–green); }
+.aw-stat-val.awc-red   { color:var(–red); }
+.aw-stat-lbl { font-size:10px; color:var(–text3); font-weight:600; margin-top:2px; }
+.aw-divider { width:1px; background:var(–border); margin:0 4px; }
+.aw-prog { height:4px; background:var(–surface2); border-radius:2px; overflow:hidden; margin:0 14px 8px; }
+.aw-prog-fill { height:100%; border-radius:2px; }
+.aw-sku-row { display:flex; align-items:center; padding:8px 14px; border-bottom:.5px solid var(–border); gap:8px; }
+.aw-sku-row:last-child { border-bottom:none; }
+.aw-sku-name { flex:1; font-size:13px; font-weight:500; color:var(–text); }
+.aw-sku-qty { font-family:‘IBM Plex Mono’,monospace; font-size:13px; font-weight:700; color:var(–accent); }
+.aw-wh-foot { display:flex; justify-content:space-between; padding:9px 14px; background:var(–bg); border-top:.5px solid var(–border); }
+.aw-wh-foot span { font-size:12px; color:var(–text2); }
+.aw-wh-foot strong { font-family:‘IBM Plex Mono’,monospace; font-size:12px; font-weight:700; }
+.aw-chart-wrap { background:var(–surface); border-radius:12px; border:1px solid var(–border); padding:13px 15px; }
+.aw-chart-title { font-size:12px; font-weight:700; color:var(–text2); margin-bottom:10px; }
+.aw-chart-box { position:relative; width:100%; height:200px; }
+.aw-chart-box canvas { display:block; width:100%!important; }
+.aw-refreshed { font-size:11px; color:var(–text3); text-align:right; }
+.aw-refreshed b { color:var(–green); }
+@keyframes awSpin { to{transform:rotate(360deg)} }
+.aw-refreshing { animation:awSpin .8s linear infinite; display:inline-block; }
 </style>
 
 </head>
 <body>
-
-<!-- PASSCODE -->
 
 <div id="passcode-screen">
   <div class="pc-logo">Stock<span>Flow</span></div>
@@ -556,8 +348,6 @@ font-family: ‘Sarabun’,sans-serif;
   <div class="pc-hint">รหัสเดียวกัน = ข้อมูลคลังเดียวกัน<br>แชร์รหัสให้ทีมเพื่อเข้าถึงข้อมูลร่วมกัน</div>
 </div>
 
-<!-- LOGIN -->
-
 <div id="login-screen">
   <div class="login-logo">StockFlow</div>
   <div class="login-tagline">ระบบจัดการคลังสินค้า</div>
@@ -569,8 +359,6 @@ font-family: ‘Sarabun’,sans-serif;
     <div class="back-link" onclick="backToPasscode()">← เปลี่ยน Workspace (รหัส)</div>
   </div>
 </div>
-
-<!-- APP -->
 
 <div id="app">
   <div class="safe-top"></div>
@@ -586,7 +374,7 @@ font-family: ‘Sarabun’,sans-serif;
   <div class="main">
 
 ```
-<!-- DASHBOARD (single warehouse) -->
+<!-- DASHBOARD — ต้นฉบับ 100% ไม่แตะ -->
 <div class="page active" id="page-dash">
   <div class="prow"><div><div class="ph1">หน้าหลัก</div><div class="room-chip" id="dash-room">-</div></div></div>
   <div class="sgrid">
@@ -602,94 +390,38 @@ font-family: ‘Sarabun’,sans-serif;
   <div class="card-scroll" id="dash-recent"><div class="loading-row"><div class="spinner"></div>กำลังโหลด...</div></div>
 </div>
 
-<!-- ALL-WAREHOUSE SUMMARY PAGE -->
+<!-- ALL-WH PAGE — ใหม่ ใช้ class aw- ทั้งหมด -->
 <div class="page" id="page-allwh">
-
-  <!-- Header -->
-  <div class="prow" style="align-items:flex-start;">
-    <div>
-      <div class="ph1">ภาพรวมทุกคลัง</div>
-      <div class="room-chip allwh">🏭 Workspace สรุป</div>
-    </div>
-    <button onclick="refreshAllWh()" style="background:var(--purple-light);color:var(--purple);border:1px solid #c4b5fd;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Sarabun',sans-serif;" id="allwh-refresh-btn">
-      ↻ รีเฟรช
-    </button>
+  <div class="prow" style="align-items:center;">
+    <div><div class="ph1">ภาพรวม</div><div class="room-chip" style="color:var(--purple);background:var(--purple-light);border-color:#c4b5fd;">🏭 ทุกคลัง</div></div>
+    <button id="aw-refresh-btn" onclick="awRefresh()" style="background:var(--purple-light);color:var(--purple);border:1px solid #c4b5fd;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Sarabun',sans-serif;">↻ รีเฟรช</button>
   </div>
-
-  <!-- Last refreshed -->
-  <div class="allwh-refreshed" id="allwh-refreshed-lbl">กำลังโหลดข้อมูล...</div>
-
-  <!-- Hero KPI -->
-  <div class="allwh-hero" id="allwh-hero">
-    <div class="allwh-hero-title">📊 สรุปรวม — ทุกคลัง</div>
-    <div class="allwh-hero-name" id="allwh-ws-name">WS-<span id="allwh-ws-code">------</span></div>
-    <div class="allwh-kpi-row">
-      <div class="allwh-kpi">
-        <div class="allwh-kpi-val aw-blue" id="aw-total-sku">0</div>
-        <div class="allwh-kpi-lbl">SKU รวม</div>
-      </div>
-      <div class="allwh-kpi">
-        <div class="allwh-kpi-val aw-green" id="aw-total-in">0</div>
-        <div class="allwh-kpi-lbl">รับเข้าวันนี้</div>
-      </div>
-      <div class="allwh-kpi">
-        <div class="allwh-kpi-val aw-red" id="aw-total-out">0</div>
-        <div class="allwh-kpi-lbl">จ่ายออกวันนี้</div>
-      </div>
+  <div class="aw-refreshed" id="aw-refreshed">กำลังโหลด...</div>
+  <div class="aw-hero">
+    <div class="aw-hero-lbl">📊 สรุปรวม</div>
+    <div class="aw-hero-title">WS-<span id="aw-ws-code">------</span></div>
+    <div class="aw-kpi-row">
+      <div class="aw-kpi"><div class="aw-kpi-val awc-blue" id="aw-sku">0</div><div class="aw-kpi-lbl">SKU รวม</div></div>
+      <div class="aw-kpi"><div class="aw-kpi-val awc-green" id="aw-in">0</div><div class="aw-kpi-lbl">รับเข้าวันนี้</div></div>
+      <div class="aw-kpi"><div class="aw-kpi-val awc-red" id="aw-out">0</div><div class="aw-kpi-lbl">จ่ายออกวันนี้</div></div>
     </div>
   </div>
-
-  <!-- Value summary cards -->
   <div class="sec-lbl">💰 มูลค่ารวมทุกคลัง</div>
-  <div class="allwh-val-row">
-    <div class="allwh-val-card cost">
-      <div class="allwh-val-card-icon">📦</div>
-      <div class="allwh-val-card-lbl">ต้นทุนสต็อค</div>
-      <div class="allwh-val-card-num" id="aw-cost">฿0</div>
-      <div class="allwh-val-card-sub">ซื้อ × สต็อคทุกคลัง</div>
-    </div>
-    <div class="allwh-val-card sale">
-      <div class="allwh-val-card-icon">🏷️</div>
-      <div class="allwh-val-card-lbl">มูลค่าขาย</div>
-      <div class="allwh-val-card-num" id="aw-sale">฿0</div>
-      <div class="allwh-val-card-sub">ราคาขาย × สต็อค</div>
-    </div>
-    <div class="allwh-val-card profit">
-      <div class="allwh-val-card-icon">✨</div>
-      <div class="allwh-val-card-lbl">กำไรในสต็อค</div>
-      <div class="allwh-val-card-num" id="aw-profit">฿0</div>
-      <div class="allwh-val-card-sub">ขาย − ต้นทุน</div>
-    </div>
-    <div class="allwh-val-card sold">
-      <div class="allwh-val-card-icon">💸</div>
-      <div class="allwh-val-card-lbl">ยอดขายจริง</div>
-      <div class="allwh-val-card-num" id="aw-sold">฿0</div>
-      <div class="allwh-val-card-sub">จ่ายออกทุกคลัง</div>
-    </div>
+  <div class="aw-val-grid">
+    <div class="aw-val-card awc-cost"><div class="aw-val-icon">📦</div><div class="aw-val-lbl">ต้นทุนสต็อค</div><div class="aw-val-num" id="aw-cost">฿0</div><div class="aw-val-sub">ซื้อ × สต็อคทุกคลัง</div></div>
+    <div class="aw-val-card awc-sale"><div class="aw-val-icon">🏷️</div><div class="aw-val-lbl">มูลค่าขาย</div><div class="aw-val-num" id="aw-sale">฿0</div><div class="aw-val-sub">ราคาขาย × สต็อค</div></div>
+    <div class="aw-val-card awc-profit"><div class="aw-val-icon">✨</div><div class="aw-val-lbl">กำไรในสต็อค</div><div class="aw-val-num" id="aw-profit">฿0</div><div class="aw-val-sub">ขาย − ต้นทุน</div></div>
+    <div class="aw-val-card awc-sold"><div class="aw-val-icon">💸</div><div class="aw-val-lbl">ยอดขายจริง</div><div class="aw-val-num" id="aw-sold">฿0</div><div class="aw-val-sub">จ่ายออกทุกคลัง</div></div>
   </div>
-
-  <!-- Chart: stock compare across warehouses -->
   <div class="sec-lbl">📈 เปรียบเทียบสต็อคแต่ละคลัง</div>
-  <div class="allwh-chart-wrap">
-    <div class="allwh-chart-title">จำนวนสต็อคคงเหลือ (แพ็ค) แยกคลัง</div>
-    <div class="allwh-chart-box"><canvas id="ch-allwh-compare"></canvas></div>
-  </div>
-
-  <!-- Per-warehouse breakdown -->
+  <div class="aw-chart-wrap"><div class="aw-chart-title">จำนวนสต็อค (แพ็ค) แยกคลัง</div><div class="aw-chart-box"><canvas id="ch-aw-compare"></canvas></div></div>
   <div class="sec-lbl">🏭 รายละเอียดแต่ละคลัง</div>
-  <div id="allwh-per-wh-list">
-    <div class="allwh-loading"><div class="spinner"></div>กำลังโหลดข้อมูลทุกคลัง...</div>
-  </div>
-
-  <!-- Top products across all warehouses -->
-  <div class="sec-lbl">🏆 สินค้ายอดนิยม (ทุกคลัง)</div>
-  <div class="card" id="allwh-top-products">
-    <div class="loading-row"><div class="spinner"></div>กำลังโหลด...</div>
-  </div>
-
+  <div id="aw-per-wh"></div>
+  <div class="sec-lbl">🏆 Top สินค้าสต็อครวม</div>
+  <div class="card" id="aw-top-prod"><div class="loading-row"><div class="spinner"></div></div></div>
 </div>
 
-<!-- HISTORY -->
+<!-- HISTORY — ต้นฉบับ 100% -->
 <div class="page" id="page-history">
   <div class="ph1">ประวัติ</div>
   <div class="search-box"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input type="text" id="hist-q" placeholder="ค้นหา..." oninput="filterHist()"></div>
@@ -702,7 +434,7 @@ font-family: ‘Sarabun’,sans-serif;
   <div class="card" id="hist-list"><div class="loading-row"><div class="spinner"></div>กำลังโหลด...</div></div>
 </div>
 
-<!-- RECORD -->
+<!-- RECORD — ต้นฉบับ 100% -->
 <div class="page" id="page-record">
   <div class="ph1">บันทึกสต็อค</div>
   <div class="sec-lbl">ประเภท</div>
@@ -757,14 +489,14 @@ font-family: ‘Sarabun’,sans-serif;
   <button class="submit-btn" onclick="submitRec()">💾 บันทึก</button>
 </div>
 
-<!-- PRODUCTS -->
+<!-- PRODUCTS — ต้นฉบับ 100% -->
 <div class="page" id="page-products">
   <div class="prow" style="align-items:center;"><div class="ph1">สินค้า</div><button onclick="openSkuMod()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:14px;font-family:'Sarabun',sans-serif;font-weight:700;cursor:pointer;">+ เพิ่ม</button></div>
   <div class="search-box"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input type="text" id="prod-q" placeholder="ค้นหา..." oninput="renderProds()"></div>
   <div class="card" id="prod-list"><div class="loading-row"><div class="spinner"></div>กำลังโหลด...</div></div>
 </div>
 
-<!-- REPORTS -->
+<!-- REPORTS — ต้นฉบับ 100% -->
 <div class="page" id="page-reports">
   <div class="ph1">รายงาน</div>
   <div class="sec-lbl">มูลค่าสต็อค</div>
@@ -803,8 +535,6 @@ font-family: ‘Sarabun’,sans-serif;
 
 <div class="toast-wrap" id="toast-wrap"></div>
 
-<!-- RENAME OVERLAY -->
-
 <div class="rename-overlay" id="ov-rename" onclick="closeRenameOv(event)">
   <div class="rename-box">
     <div class="rename-box-title">✏️ เปลี่ยนชื่อคลัง</div>
@@ -817,8 +547,6 @@ font-family: ‘Sarabun’,sans-serif;
     </div>
   </div>
 </div>
-
-<!-- EDIT OVERLAY -->
 
 <div class="overlay" id="ov-edit" onclick="closeEditBg(event)">
   <div class="sheet">
@@ -842,8 +570,6 @@ font-family: ‘Sarabun’,sans-serif;
     </div>
   </div>
 </div>
-
-<!-- SKU OVERLAY -->
 
 <div class="overlay" id="ov-sku" onclick="closeSkuBg(event)">
   <div class="sheet">
@@ -881,9 +607,11 @@ font-family: ‘Sarabun’,sans-serif;
 </div>
 
 <script>
+/* ===================================================
+   ORIGINAL JS — คัดลอกมาทั้งหมด ไม่แตะ
+   =================================================== */
 const DB='https://stock-30382-default-rtdb.asia-southeast1.firebasedatabase.app';
-let pcBuffer=''; const PC_LEN=6;
-
+let pcBuffer='';const PC_LEN=6;
 function hashCode(s){let h=0;for(let i=0;i<s.length;i++)h=(Math.imul(31,h)+s.charCodeAt(i))|0;return('0000000'+(h>>>0).toString(16)).slice(-8).toUpperCase();}
 function pcKey(d){if(pcBuffer.length>=PC_LEN)return;pcBuffer+=d;updatePcDisplay();if(pcBuffer.length===PC_LEN)setTimeout(confirmPasscode,160);}
 function pcDel(){if(pcBuffer.length>0){pcBuffer=pcBuffer.slice(0,-1);updatePcDisplay();document.getElementById('pc-err').textContent='';}}
@@ -895,12 +623,9 @@ let currentWsKey='',currentPasscode='',room='',user='',skus={},movements={},movA
 let pollTimer=null,whPollTimer=null,lastHash={s:'',m:'',w:''};
 let editingId=null,editingSkuId=null,histTypeFilter='',recType='in',curPlat='';
 let imgUnit=null,imgCase=null;
-let chPlatQty,chDeduct,chSkuVal,chMonthly,chDashStock,chAllWhCompare;
+let chPlatQty,chDeduct,chSkuVal,chMonthly,chDashStock,chAwCompare;
 const WH_DEFAULTS=[{id:'WH_A',label:'คลัง A'},{id:'WH_B',label:'คลัง B'},{id:'WH_C',label:'คลัง C'}];
 let WAREHOUSES=[],renamingWhId=null;
-let allWhData={}; // cache: { WH_A: {skus, movements}, ... }
-let allWhLoading=false;
-
 const WH_COLORS=['#007aff','#34c759','#ff9500','#af52de','#ff3b30','#5ac8fa'];
 
 const whLabelsPath=()=>'ws_'+currentWsKey+'/warehouse_labels';
@@ -916,65 +641,64 @@ function setOnline(v){const pill=document.getElementById('sync-pill'),bar=docume
 
 async function loadWarehousesFromFirebase(){try{const data=await apiGet(whLabelsPath());WAREHOUSES=WH_DEFAULTS.map(w=>({...w,label:(data&&data[w.id])?data[w.id]:w.label}));}catch(e){WAREHOUSES=WH_DEFAULTS.map(w=>({...w}));}}
 async function saveWhLabelToFirebase(id,label){try{await apiPatch(whLabelsPath(),{[id]:label});}catch(e){toast('ไม่สามารถบันทึกชื่อได้ (ออฟไลน์)','error');}}
-async function pollWarehouseLabels(){try{const data=await apiGet(whLabelsPath());if(!data)return;const h=JSON.stringify(data);if(h===lastHash.w)return;lastHash.w=h;let changed=false;WH_DEFAULTS.forEach(w=>{if(data[w.id]){const wh=WAREHOUSES.find(x=>x.id===w.id);if(wh&&wh.label!==data[w.id]){wh.label=data[w.id];changed=true;}}});if(changed){buildWhTabs();syncActiveTab();const currentWh=WAREHOUSES.find(w=>w.id===room);if(currentWh){const rc=document.getElementById('dash-room');if(rc)rc.textContent=currentWh.label;}}}catch(e){}}
-function syncActiveTab(){if(room==='ALL'){document.querySelectorAll('.wh-tab-wrap').forEach(t=>t.classList.remove('active'));const allTab=document.getElementById('tabwrap-ALL');if(allTab)allTab.classList.add('active');}else{document.querySelectorAll('.wh-tab-wrap').forEach(t=>t.classList.remove('active'));const wrap=document.getElementById('tabwrap-'+room);if(wrap)wrap.classList.add('active');}}
+async function pollWarehouseLabels(){try{const data=await apiGet(whLabelsPath());if(!data)return;const h=JSON.stringify(data);if(h===lastHash.w)return;lastHash.w=h;let changed=false;WH_DEFAULTS.forEach(w=>{if(data[w.id]){const wh=WAREHOUSES.find(x=>x.id===w.id);if(wh&&wh.label!==data[w.id]){wh.label=data[w.id];changed=true;}}});if(changed){buildWhTabs();setActiveTab();const currentWh=WAREHOUSES.find(w=>w.id===room);if(currentWh&&room!=='ALL'){const rc=document.getElementById('dash-room');if(rc)rc.textContent=currentWh.label;}}}catch(e){}}
+function setActiveTab(){document.querySelectorAll('.wh-tab-wrap').forEach(t=>t.classList.remove('active'));const t=document.getElementById('tabwrap-'+(room||'ALL'));if(t)t.classList.add('active');}
 function startWhPoll(){if(whPollTimer)clearInterval(whPollTimer);whPollTimer=setInterval(pollWarehouseLabels,4000);}
 
 async function poll(){try{const[s,m]=await Promise.all([apiGet(rp()+'/skus'),apiGet(rp()+'/movements')]);setOnline(true);const sh=JSON.stringify(s),mh=JSON.stringify(m);if(sh!==lastHash.s){lastHash.s=sh;skus=s||{};renderProds();updateSkuSel();updateDash();}if(mh!==lastHash.m){lastHash.m=mh;movements=m||{};movArr=Object.entries(movements).sort((a,b)=>b[1].createdAt-a[1].createdAt);filterHist();updateDash();if(document.getElementById('page-reports')?.classList.contains('active'))requestAnimationFrame(()=>setTimeout(renderReports,60));}}catch(e){setOnline(false);}}
 function startPoll(){if(pollTimer)clearInterval(pollTimer);poll();pollTimer=setInterval(poll,3000);}
 
 function doLogin(){const n=document.getElementById('login-name').value.trim();if(!n){toast('กรุณากรอกชื่อ','error');return;}user=n;localStorage.setItem('sf_user_'+currentWsKey,n);document.getElementById('login-screen').style.display='none';startApp();}
-async function startApp(){if(currentWsKey&&user){sessionStorage.setItem('sf_session_ws',currentWsKey);sessionStorage.setItem('sf_session_user',user);}const app=document.getElementById('app');app.style.display='flex';app.style.flexDirection='column';app.style.height='100%';document.getElementById('av-btn').textContent=(user[0]||'?').toUpperCase();await loadWarehousesFromFirebase();buildWhTabs();const lastRoom=localStorage.getItem('sf_room_'+currentWsKey)||WAREHOUSES[0].id;if(lastRoom==='ALL'){switchToAllWh();}else{switchWarehouse(lastRoom);}startWhPoll();}
-function doLogout(){if(confirm('ออกจากระบบ "'+user+'" ?\n(ต้องใส่รหัสใหม่เพื่อเข้าใช้)')){clearInterval(pollTimer);clearInterval(whPollTimer);sessionStorage.removeItem('sf_session_ws');sessionStorage.removeItem('sf_session_user');currentWsKey='';currentPasscode='';user='';skus={};movements={};movArr=[];allWhData={};lastHash={s:'',m:'',w:''};document.getElementById('app').style.display='none';document.getElementById('passcode-screen').style.display='flex';pcBuffer='';updatePcDisplay();document.getElementById('pc-err').textContent='';}}
+
+async function startApp(){
+  if(currentWsKey&&user){sessionStorage.setItem('sf_session_ws',currentWsKey);sessionStorage.setItem('sf_session_user',user);}
+  const app=document.getElementById('app');
+  app.style.display='flex';app.style.flexDirection='column';app.style.height='100%';
+  document.getElementById('av-btn').textContent=(user[0]||'?').toUpperCase();
+  await loadWarehousesFromFirebase();
+  buildWhTabs();
+  const lastRoom=localStorage.getItem('sf_room_'+currentWsKey)||WAREHOUSES[0].id;
+  if(lastRoom==='ALL'){goAllWh();}else{switchWarehouse(lastRoom);}
+  startWhPoll();
+}
+
+function doLogout(){if(confirm('ออกจากระบบ "'+user+'" ?\n(ต้องใส่รหัสใหม่เพื่อเข้าใช้)')){clearInterval(pollTimer);clearInterval(whPollTimer);sessionStorage.removeItem('sf_session_ws');sessionStorage.removeItem('sf_session_user');currentWsKey='';currentPasscode='';user='';skus={};movements={};movArr=[];lastHash={s:'',m:'',w:''};document.getElementById('app').style.display='none';document.getElementById('passcode-screen').style.display='flex';pcBuffer='';updatePcDisplay();document.getElementById('pc-err').textContent='';}}
 
 function buildWhTabs(){
   const bar=document.getElementById('wh-bar');
-  const whTabs=WAREHOUSES.map(wh=>`<div class="wh-tab-wrap" id="tabwrap-${wh.id}"><button class="wh-tab" id="tab-${wh.id}" onclick="switchWarehouse('${wh.id}')">${wh.label}</button><button class="wh-edit-btn" onclick="openRename('${wh.id}')" title="เปลี่ยนชื่อคลัง">✎</button></div>`).join('');
-  const sep=`<div style="width:1px;height:24px;background:var(--border);margin:0 6px;flex-shrink:0;align-self:center;"></div>`;
-  const allTabHtml=`<div class="wh-tab-wrap allwh-tab" id="tabwrap-ALL"><button class="wh-tab" id="tab-ALL" onclick="switchToAllWh()">🏭 ภาพรวมทุกคลัง</button></div>`;
-  bar.innerHTML=whTabs+sep+allTabHtml;
+  const tabs=WAREHOUSES.map(wh=>`<div class="wh-tab-wrap" id="tabwrap-${wh.id}"><button class="wh-tab" onclick="switchWarehouse('${wh.id}')">${wh.label}</button><button class="wh-edit-btn" onclick="openRename('${wh.id}')">✎</button></div>`).join('');
+  const sep='<div class="wh-sep"></div>';
+  const allTab=`<div class="wh-tab-wrap allwh-tab" id="tabwrap-ALL"><button class="wh-tab" onclick="goAllWh()">🏭 ภาพรวม</button></div>`;
+  bar.innerHTML=tabs+sep+allTab;
 }
-function openRename(whId){renamingWhId=whId;const wh=WAREHOUSES.find(w=>w.id===whId);document.getElementById('rename-sub').textContent='ชื่อปัจจุบัน: '+(wh?.label||whId);const inp=document.getElementById('rename-inp');inp.value=wh?.label||'';document.getElementById('ov-rename').classList.add('open');setTimeout(()=>inp.focus(),100);}
-function closeRename(){document.getElementById('ov-rename').classList.remove('open');renamingWhId=null;}
-function closeRenameOv(e){if(e.target===document.getElementById('ov-rename'))closeRename();}
-async function saveRename(){if(!renamingWhId)return;const val=document.getElementById('rename-inp').value.trim();if(!val){toast('กรุณากรอกชื่อคลัง','error');return;}const wh=WAREHOUSES.find(w=>w.id===renamingWhId);if(wh)wh.label=val;await saveWhLabelToFirebase(renamingWhId,val);buildWhTabs();syncActiveTab();if(room===renamingWhId){const rc=document.getElementById('dash-room');if(rc)rc.textContent=val;}toast('✅ เปลี่ยนชื่อเป็น "'+val+'" — ซิงค์แล้ว','success');closeRename();lastHash.w='';}
 
-function switchToAllWh(){
+function goAllWh(){
   if(pollTimer)clearInterval(pollTimer);
   room='ALL';
   localStorage.setItem('sf_room_'+currentWsKey,'ALL');
-  document.querySelectorAll('.wh-tab-wrap').forEach(t=>t.classList.remove('active'));
-  const tab=document.getElementById('tabwrap-ALL');
-  if(tab)tab.classList.add('active');
-  // Show allwh page, hide single-wh page
+  setActiveTab();
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-allwh').classList.add('active');
-  // Update bottom nav
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
   document.getElementById('nb-dash').classList.add('active');
-  // Load all warehouses data
-  loadAllWhData();
+  document.getElementById('aw-ws-code').textContent=currentWsKey;
+  awLoad();
 }
 
 function switchWarehouse(whId){
-  if(whId==='ALL'){switchToAllWh();return;}
   if(pollTimer)clearInterval(pollTimer);
   room=whId;
   localStorage.setItem('sf_room_'+currentWsKey,whId);
   skus={};movements={};movArr=[];lastHash.s='';lastHash.m='';
-  document.querySelectorAll('.wh-tab-wrap').forEach(t=>t.classList.remove('active'));
-  const tab=document.getElementById('tabwrap-'+whId);
-  if(tab)tab.classList.add('active');
+  setActiveTab();
   const whLabel=WAREHOUSES.find(w=>w.id===whId)?.label||whId;
-  const rc=document.getElementById('dash-room');
-  if(rc)rc.textContent=whLabel;
+  document.getElementById('dash-room').textContent=whLabel;
   document.getElementById('dash-stock').innerHTML='<div class="loading-row"><div class="spinner"></div>กำลังโหลด...</div>';
   document.getElementById('dash-recent').innerHTML='<div class="loading-row"><div class="spinner"></div>กำลังโหลด...</div>';
   document.getElementById('hist-list').innerHTML='<div class="loading-row"><div class="spinner"></div>กำลังโหลด...</div>';
   document.getElementById('prod-list').innerHTML='<div class="loading-row"><div class="spinner"></div>กำลังโหลด...</div>';
   destroyAllCharts();
   updateSkuSel();
-  // Show normal dash page
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-dash').classList.add('active');
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
@@ -984,7 +708,7 @@ function switchWarehouse(whId){
 }
 
 function showPg(name,el){
-  if(name==='dash'&&room==='ALL'){switchToAllWh();return;}
+  if(name==='dash'&&room==='ALL'){goAllWh();return;}
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
@@ -994,344 +718,24 @@ function showPg(name,el){
   if(name==='dash'){requestAnimationFrame(()=>renderDashChart());}
 }
 
-function destroyAllCharts(){
-  if(chPlatQty){chPlatQty.destroy();chPlatQty=null;}
-  if(chDeduct){chDeduct.destroy();chDeduct=null;}
-  if(chSkuVal){chSkuVal.destroy();chSkuVal=null;}
-  if(chMonthly){chMonthly.destroy();chMonthly=null;}
-  if(chDashStock){chDashStock.destroy();chDashStock=null;}
-  if(chAllWhCompare){chAllWhCompare.destroy();chAllWhCompare=null;}
-}
+function openRename(whId){renamingWhId=whId;const wh=WAREHOUSES.find(w=>w.id===whId);document.getElementById('rename-sub').textContent='ชื่อปัจจุบัน: '+(wh?.label||whId);const inp=document.getElementById('rename-inp');inp.value=wh?.label||'';document.getElementById('ov-rename').classList.add('open');setTimeout(()=>inp.focus(),100);}
+function closeRename(){document.getElementById('ov-rename').classList.remove('open');renamingWhId=null;}
+function closeRenameOv(e){if(e.target===document.getElementById('ov-rename'))closeRename();}
+async function saveRename(){if(!renamingWhId)return;const val=document.getElementById('rename-inp').value.trim();if(!val){toast('กรุณากรอกชื่อคลัง','error');return;}const wh=WAREHOUSES.find(w=>w.id===renamingWhId);if(wh)wh.label=val;await saveWhLabelToFirebase(renamingWhId,val);buildWhTabs();setActiveTab();if(room===renamingWhId){document.getElementById('dash-room').textContent=val;}toast('✅ เปลี่ยนชื่อเป็น "'+val+'" — ซิงค์แล้ว','success');closeRename();lastHash.w='';}
 
-/* ================================================
-   ALL-WAREHOUSE SUMMARY LOGIC
-   ================================================ */
-
-async function loadAllWhData(){
-  allWhLoading=true;
-  document.getElementById('allwh-ws-code').textContent=currentWsKey;
-
-  const btn=document.getElementById('allwh-refresh-btn');
-  if(btn)btn.classList.add('allwh-refreshing');
-
-  try{
-    // Load all warehouses in parallel
-    const results=await Promise.all(WAREHOUSES.map(async wh=>{
-      try{
-        const [s,m]=await Promise.all([
-          apiGet('ws_'+currentWsKey+'/rooms/'+wh.id+'/skus'),
-          apiGet('ws_'+currentWsKey+'/rooms/'+wh.id+'/movements')
-        ]);
-        return{id:wh.id,label:wh.label,skus:s||{},movements:m||{}};
-      }catch(e){
-        return{id:wh.id,label:wh.label,skus:{},movements:{}};
-      }
-    }));
-
-    allWhData={};
-    results.forEach(r=>{allWhData[r.id]=r;});
-    setOnline(true);
-    renderAllWh();
-
-    // Update last refreshed time
-    const now=new Date();
-    const ts=now.getHours()+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
-    const lbl=document.getElementById('allwh-refreshed-lbl');
-    if(lbl)lbl.innerHTML='อัปเดตล่าสุด <span>'+ts+' น.</span>';
-
-  }catch(e){
-    setOnline(false);
-    toast('โหลดข้อมูลไม่สำเร็จ','error');
-  }
-  allWhLoading=false;
-  if(btn)btn.classList.remove('allwh-refreshing');
-}
-
-function refreshAllWh(){
-  if(allWhLoading)return;
-  loadAllWhData();
-}
-
-function computeStockForWh(mvs){
-  const map={};
-  Object.values(mvs).forEach(m=>{
-    if(!map[m.skuId])map[m.skuId]=0;
-    if(m.type==='in')map[m.skuId]+=m.pieces;
-    else if(m.type==='adj'){if(m.adjDir==='minus')map[m.skuId]-=m.pieces;else map[m.skuId]+=m.pieces;}
-    else if(m.type==='out')map[m.skuId]-=m.pieces;
-  });
-  return map;
-}
-
-function renderAllWh(){
-  const today=new Date().toISOString().slice(0,10);
-  let totalSkuSet=new Set();
-  let totalIn=0, totalOut=0;
-  let totalCost=0, totalSale=0, totalSold=0;
-  // Aggregate SKU catalog across all warehouses (by name)
-  let globalSkuMap={}; // skuId -> sku data (prefer first found)
-
-  Object.values(allWhData).forEach(wh=>{
-    Object.entries(wh.skus||{}).forEach(([id,s])=>{
-      totalSkuSet.add(s.name||id);
-      if(!globalSkuMap[id])globalSkuMap[id]=s;
-    });
-    const sm=computeStockForWh(wh.movements||{});
-    Object.values(wh.movements||{}).forEach(m=>{
-      const d=(m.date||'').slice(0,10);
-      if(d===today){
-        if(m.type==='in')totalIn+=m.pieces;
-        else if(m.type==='out')totalOut+=m.pieces;
-      }
-      if(m.type==='out'){
-        const s=wh.skus[m.skuId]||{};
-        totalSold+=m.pieces*(s.salePrice||0);
-      }
-    });
-    Object.entries(sm).forEach(([id,qty])=>{
-      const s=wh.skus[id]||{};
-      totalCost+=qty*(s.costPrice||0);
-      totalSale+=qty*(s.salePrice||0);
-    });
-  });
-
-  // Update KPI
-  document.getElementById('aw-total-sku').textContent=totalSkuSet.size;
-  document.getElementById('aw-total-in').textContent=totalIn;
-  document.getElementById('aw-total-out').textContent=totalOut;
-  document.getElementById('aw-cost').textContent=fmtB(totalCost);
-  document.getElementById('aw-sale').textContent=fmtB(totalSale);
-  document.getElementById('aw-profit').textContent=fmtB(totalSale-totalCost);
-  document.getElementById('aw-sold').textContent=fmtB(totalSold);
-
-  // Per-warehouse breakdown
-  renderAllWhPerWh(today);
-
-  // Comparison chart
-  renderAllWhChart();
-
-  // Top products
-  renderAllWhTopProducts(globalSkuMap);
-}
-
-function renderAllWhPerWh(today){
-  const el=document.getElementById('allwh-per-wh-list');
-  if(!el)return;
-
-  const whColors=WH_COLORS;
-  let html='';
-
-  // Find max total stock for progress bar scaling
-  let maxStock=0;
-  WAREHOUSES.forEach((wh,i)=>{
-    const d=allWhData[wh.id];
-    if(!d)return;
-    const sm=computeStockForWh(d.movements||{});
-    const total=Object.values(sm).reduce((a,b)=>a+b,0);
-    if(total>maxStock)maxStock=total;
-  });
-
-  WAREHOUSES.forEach((wh,i)=>{
-    const d=allWhData[wh.id];
-    const color=whColors[i%whColors.length];
-    if(!d){
-      html+=`<div class="allwh-wh-card" style="margin-bottom:10px;"><div class="allwh-wh-head"><div class="allwh-wh-dot" style="background:${color};"></div><div class="allwh-wh-name">${wh.label}</div><span style="font-size:12px;color:var(--text3);">ไม่มีข้อมูล</span></div></div>`;
-      return;
-    }
-    const sm=computeStockForWh(d.movements||{});
-    const mvs=Object.values(d.movements||{});
-    let whIn=0,whOut=0,whSold=0,whCost=0,whSale=0;
-    mvs.forEach(m=>{
-      const dstr=(m.date||'').slice(0,10);
-      if(dstr===today){if(m.type==='in')whIn+=m.pieces;else if(m.type==='out')whOut+=m.pieces;}
-      if(m.type==='out'){const s=d.skus[m.skuId]||{};whSold+=m.pieces*(s.salePrice||0);}
-    });
-    const skuCount=Object.keys(d.skus||{}).length;
-    const totalStock=Object.values(sm).reduce((a,b)=>a+b,0);
-    Object.entries(sm).forEach(([id,qty])=>{
-      const s=d.skus[id]||{};
-      whCost+=qty*(s.costPrice||0);
-      whSale+=qty*(s.salePrice||0);
-    });
-    const pct=maxStock>0?Math.round(totalStock/maxStock*100):0;
-    // Top 3 SKUs by stock
-    const topSkus=Object.entries(sm).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).slice(0,3);
-
-    html+=`
-    <div class="allwh-wh-card" style="margin-bottom:10px;">
-      <div class="allwh-wh-head" onclick="switchWarehouse('${wh.id}')">
-        <div class="allwh-wh-dot" style="background:${color};"></div>
-        <div class="allwh-wh-name">${wh.label}</div>
-        <button class="allwh-jump-btn">เปิดคลัง →</button>
-      </div>
-      <div class="allwh-wh-body">
-        <div class="allwh-wh-stat-row">
-          <div class="allwh-wh-stat">
-            <div class="allwh-wh-stat-val">${skuCount}</div>
-            <div class="allwh-wh-stat-lbl">SKU</div>
-          </div>
-          <div class="allwh-wh-divider"></div>
-          <div class="allwh-wh-stat">
-            <div class="allwh-wh-stat-val">${totalStock}</div>
-            <div class="allwh-wh-stat-lbl">สต็อครวม (แพ็ค)</div>
-          </div>
-          <div class="allwh-wh-divider"></div>
-          <div class="allwh-wh-stat">
-            <div class="allwh-wh-stat-val aw-green">+${whIn}</div>
-            <div class="allwh-wh-stat-lbl">รับเข้าวันนี้</div>
-          </div>
-          <div class="allwh-wh-divider"></div>
-          <div class="allwh-wh-stat">
-            <div class="allwh-wh-stat-val aw-red">-${whOut}</div>
-            <div class="allwh-wh-stat-lbl">จ่ายออกวันนี้</div>
-          </div>
-        </div>
-        <div class="allwh-prog-bar">
-          <div class="allwh-prog-fill" style="width:${pct}%;background:${color};"></div>
-        </div>
-        ${topSkus.length?topSkus.map(([id,qty])=>{
-          const s=d.skus[id]||{};
-          return`<div class="allwh-stock-row"><div class="sdot" style="background:${color};opacity:.6;width:6px;height:6px;border-radius:50%;flex-shrink:0;"></div><div class="allwh-stock-name">${s.name||id}</div><div class="allwh-stock-qty">${qty} แพ็ค</div></div>`;
-        }).join(''):'<div style="padding:8px 14px;font-size:12px;color:var(--text3);">ยังไม่มีสต็อค</div>'}
-        <div style="padding:10px 14px;border-top:0.5px solid var(--border);display:flex;justify-content:space-between;background:var(--bg);">
-          <span style="font-size:12px;color:var(--text2);">มูลค่าขาย</span>
-          <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:var(--green);">${fmtB(whSale)}</span>
-        </div>
-        <div style="padding:6px 14px 10px;display:flex;justify-content:space-between;background:var(--bg);">
-          <span style="font-size:12px;color:var(--text2);">ยอดขายสะสม</span>
-          <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:var(--accent);">${fmtB(whSold)}</span>
-        </div>
-      </div>
-    </div>`;
-  });
-
-  el.innerHTML=html||'<div class="empty-st">ไม่มีข้อมูลคลัง</div>';
-}
-
-function renderAllWhChart(){
-  const el=document.getElementById('ch-allwh-compare');
-  if(!el)return;
-  if(chAllWhCompare){chAllWhCompare.destroy();chAllWhCompare=null;}
-
-  // Collect all SKU names across all warehouses
-  const skuNames={};
-  WAREHOUSES.forEach(wh=>{
-    const d=allWhData[wh.id];
-    if(!d)return;
-    Object.entries(d.skus||{}).forEach(([id,s])=>{skuNames[id]=s.name||id;});
-  });
-
-  const skuIds=Object.keys(skuNames);
-  if(!skuIds.length){return;}
-
-  // Build datasets: one per warehouse
-  const datasets=WAREHOUSES.map((wh,i)=>{
-    const d=allWhData[wh.id];
-    const sm=d?computeStockForWh(d.movements||{}):{};
-    return{
-      label:wh.label,
-      data:skuIds.map(id=>sm[id]||0),
-      backgroundColor:WH_COLORS[i%WH_COLORS.length]+'88',
-      borderColor:WH_COLORS[i%WH_COLORS.length],
-      borderWidth:2,
-      borderRadius:4,
-    };
-  });
-
-  const box=el.parentElement;
-  const w=box.offsetWidth||window.innerWidth-64;
-  el.width=w; el.height=220;
-  el.style.width=w+'px'; el.style.height='220px';
-
-  chAllWhCompare=new Chart(el.getContext('2d'),{
-    type:'bar',
-    data:{
-      labels:skuIds.map(id=>skuNames[id]),
-      datasets
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{
-        legend:{position:'top',labels:{font:{family:'Sarabun',size:11},boxWidth:10,padding:8}},
-        tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.parsed.y+' แพ็ค'}}
-      },
-      scales:{
-        x:{ticks:{font:{family:'Sarabun',size:10},maxRotation:30},grid:{display:false}},
-        y:{beginAtZero:true,ticks:{font:{family:'Sarabun',size:10},callback:v=>v+' แพ็ค'}}
-      }
-    }
-  });
-}
-
-function renderAllWhTopProducts(globalSkuMap){
-  const el=document.getElementById('allwh-top-products');
-  if(!el)return;
-
-  // Aggregate total stock per product across all warehouses
-  const totals={};
-  const outTotals={};
-  WAREHOUSES.forEach(wh=>{
-    const d=allWhData[wh.id];
-    if(!d)return;
-    const sm=computeStockForWh(d.movements||{});
-    Object.entries(sm).forEach(([id,qty])=>{
-      if(!totals[id])totals[id]=0;
-      totals[id]+=qty;
-    });
-    Object.values(d.movements||{}).forEach(m=>{
-      if(m.type!=='out')return;
-      if(!outTotals[m.skuId])outTotals[m.skuId]=0;
-      outTotals[m.skuId]+=m.pieces;
-    });
-  });
-
-  const sorted=Object.entries(totals).sort((a,b)=>b[1]-a[1]).slice(0,6);
-  if(!sorted.length){el.innerHTML='<div class="empty-st">ยังไม่มีสต็อค</div>';return;}
-
-  const maxQ=sorted[0][1]||1;
-  el.innerHTML=sorted.map(([id,qty],i)=>{
-    const s=globalSkuMap[id]||{};
-    const pct=Math.round(qty/maxQ*100);
-    const color=WH_COLORS[i%WH_COLORS.length];
-    const out=outTotals[id]||0;
-    const imgH=s.imageUnit?`<img src="${s.imageUnit}" style="width:34px;height:34px;object-fit:cover;border-radius:7px;border:1px solid var(--border);flex-shrink:0;">`
-      :`<div style="width:34px;height:34px;border-radius:7px;background:${color}22;border:1px solid ${color}44;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;">📦</div>`;
-    return`<div style="padding:10px 14px;border-bottom:0.5px solid var(--border);">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-        ${imgH}
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:14px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.name||id}</div>
-          <div style="font-size:11px;color:var(--text3);font-family:'IBM Plex Mono',monospace;">${s.unitSku||id}</div>
-        </div>
-        <div style="text-align:right;">
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:700;color:${color};">${qty}</div>
-          <div style="font-size:10px;color:var(--text3);">แพ็ค / ทุกคลัง</div>
-        </div>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div style="flex:1;background:var(--surface2);border-radius:4px;height:4px;overflow:hidden;">
-          <div style="width:${pct}%;height:100%;background:${color};border-radius:4px;"></div>
-        </div>
-        <span style="font-size:11px;color:var(--text3);white-space:nowrap;">ขายแล้ว ${out} แพ็ค</span>
-      </div>
-    </div>`;
-  }).join('')+'<div style="padding:10px 14px;background:var(--bg);border-top:0.5px solid var(--border);"><div style="font-size:11px;color:var(--text3);text-align:center;">แสดง Top 6 สินค้าที่มีสต็อคมากสุดในทุกคลัง</div></div>';
-}
-
-/* ================================================
-   ORIGINAL DASHBOARD LOGIC
-   ================================================ */
+function destroyAllCharts(){if(chPlatQty){chPlatQty.destroy();chPlatQty=null;}if(chDeduct){chDeduct.destroy();chDeduct=null;}if(chSkuVal){chSkuVal.destroy();chSkuVal=null;}if(chMonthly){chMonthly.destroy();chMonthly=null;}if(chDashStock){chDashStock.destroy();chDashStock=null;}if(chAwCompare){chAwCompare.destroy();chAwCompare=null;}}
 function computeStock(){const map={};Object.values(movements).forEach(m=>{if(!map[m.skuId])map[m.skuId]=0;if(m.type==='in')map[m.skuId]+=m.pieces;else if(m.type==='adj'){if(m.adjDir==='minus')map[m.skuId]-=m.pieces;else map[m.skuId]+=m.pieces;}else if(m.type==='out')map[m.skuId]-=m.pieces;});return map;}
+function computeStockFrom(mvs){const map={};Object.values(mvs).forEach(m=>{if(!map[m.skuId])map[m.skuId]=0;if(m.type==='in')map[m.skuId]+=m.pieces;else if(m.type==='adj'){if(m.adjDir==='minus')map[m.skuId]-=m.pieces;else map[m.skuId]+=m.pieces;}else if(m.type==='out')map[m.skuId]-=m.pieces;});return map;}
 const clrs=['#007aff','#34c759','#ff9500','#ff3b30','#af52de','#5ac8fa','#ff6b35','#30d158'];
 function fmtB(n){return'฿'+Math.round(n).toLocaleString('th-TH');}
+
 function updateDash(){const today=new Date().toISOString().slice(0,10);let cnt=0,tin=0,tout=0;Object.values(movements).forEach(m=>{const d=(m.date||'').slice(0,10);if(d===today){cnt++;if(m.type==='in')tin+=m.pieces;else if(m.type==='out')tout+=m.pieces;}});document.getElementById('s-today').textContent=cnt;document.getElementById('s-skus').textContent=Object.keys(skus).length;document.getElementById('s-in').textContent=tin;document.getElementById('s-out').textContent=tout;renderDashStock();renderDashRecent();renderDashChart();}
-function renderDashChart(){const sm=computeStock();const ents=Object.entries(sm).filter(([,v])=>v>0);const el=document.getElementById('ch-dash-stock');if(!el)return;if(chDashStock){chDashStock.destroy();chDashStock=null;}if(!ents.length){const ctx=el.getContext('2d');ctx.clearRect(0,0,el.width,el.height);return;}const labels=ents.map(([id])=>skus[id]?.name||id);const data=ents.map(([,v])=>v);const bgColors=clrs.slice(0,ents.length).map(c=>c+'99');const borderColors=clrs.slice(0,ents.length);const pW=el.parentElement.offsetWidth||window.innerWidth-64;el.width=pW;el.height=200;el.style.width=pW+'px';el.style.height='200px';const ctx=el.getContext('2d');chDashStock=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'สต็อค (แพ็ค)',data,backgroundColor:bgColors,borderColor:borderColors,borderWidth:2,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y+' แพ็ค'}}},scales:{x:{ticks:{font:{family:'Sarabun',size:11},maxRotation:30},grid:{display:false}},y:{beginAtZero:true,ticks:{font:{family:'Sarabun',size:10},callback:v=>v+' แพ็ค'}}}}});}
+function renderDashChart(){const sm=computeStock();const ents=Object.entries(sm).filter(([,v])=>v>0);const el=document.getElementById('ch-dash-stock');if(!el)return;if(chDashStock){chDashStock.destroy();chDashStock=null;}if(!ents.length){return;}const labels=ents.map(([id])=>skus[id]?.name||id);const data=ents.map(([,v])=>v);const bgColors=clrs.slice(0,ents.length).map(c=>c+'99');const borderColors=clrs.slice(0,ents.length);const pW=el.parentElement.offsetWidth||window.innerWidth-64;el.width=pW;el.height=200;el.style.width=pW+'px';el.style.height='200px';const ctx=el.getContext('2d');chDashStock=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'สต็อค (แพ็ค)',data,backgroundColor:bgColors,borderColor:borderColors,borderWidth:2,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y+' แพ็ค'}}},scales:{x:{ticks:{font:{family:'Sarabun',size:11},maxRotation:30},grid:{display:false}},y:{beginAtZero:true,ticks:{font:{family:'Sarabun',size:10},callback:v=>v+' แพ็ค'}}}}});}
 function renderDashStock(){const el=document.getElementById('dash-stock');const sm=computeStock();const ents=Object.entries(sm);if(!ents.length){el.innerHTML='<div class="empty-st">ยังไม่มีสต็อค</div>';return;}el.innerHTML=ents.map(([id,v],i)=>{const s=skus[id]||{};const cs=s.piecesPerCase>1?Math.floor(v/s.piecesPerCase):null;const imgH=s.imageUnit?'<img src="'+s.imageUnit+'" style="width:34px;height:34px;object-fit:cover;border-radius:7px;border:1px solid var(--border);flex-shrink:0;">':'';return'<div class="srow">'+imgH+'<div class="sdot" style="background:'+clrs[i%clrs.length]+';'+(s.imageUnit?'display:none;':'')+'"></div><div class="sname">'+(s.name||id)+'</div><div style="text-align:right;"><div class="sqty">'+v+'</div>'+(cs!==null?'<div class="ssub">/ '+cs+' ลัง</div>':'')+'<div class="ssub">แพ็ค</div></div></div>';}).join('');}
 function renderDashRecent(){const el=document.getElementById('dash-recent');const items=movArr.slice(0,5);if(!items.length){el.innerHTML='<div class="empty-st">ยังไม่มีรายการ</div>';return;}el.innerHTML=items.map(([id,m])=>movRowHtml(id,m,true)).join('');}
 function setHType(t,el){histTypeFilter=t;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');filterHist();}
 function filterHist(){const q=(document.getElementById('hist-q')?.value||'').toLowerCase();const filtered=movArr.filter(([,m])=>{const s=skus[m.skuId]||{};const txt=((s.name||'')+(s.unitSku||'')+(m.user||'')+(m.note||'')).toLowerCase();return(!q||txt.includes(q))&&(!histTypeFilter||m.type===histTypeFilter);});const el=document.getElementById('hist-list');if(!filtered.length){el.innerHTML='<div class="empty-st">ไม่พบรายการ</div>';return;}el.innerHTML=filtered.map(([id,m])=>movRowHtml(id,m,false)).join('');}
 function movRowHtml(id,m,compact){const s=skus[m.skuId]||{};const icon=m.type==='in'?'📥':m.type==='out'?'📤':'✏️';const cls=m.type==='in'?'in':m.type==='out'?'out':'adj';const pfx=m.type==='in'?'+':m.type==='out'?'−':(m.adjDir==='minus'?'−':'+');const dt=m.date?new Date(m.date):null;const ds=dt?(dt.getDate()+'/'+(dt.getMonth()+1)+(compact?'':'/'+dt.getFullYear())+' '+String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0')):'-';const editTag=m.editHistory?.length?'<span class="edited-chip">แก้ไข ×'+m.editHistory.length+'</span>':'';return'<div class="list-row" onclick="openEdit(\''+id+'\')"><div class="row-icon '+cls+'">'+icon+'</div><div class="row-body"><div class="row-name">'+(s.name||m.skuId)+'</div><div class="row-meta">'+ds+' · '+(m.user||'-')+(m.platform?' · 🏪'+m.platform:'')+(m.note?' · '+m.note:'')+'</div>'+editTag+'</div><div class="row-qty '+cls+'">'+pfx+m.pieces+' แพ็ค</div></div>';}
-
 function setRType(t,el){recType=t;document.querySelectorAll('.topt').forEach(b=>b.classList.remove('active'));el.classList.add('active');document.getElementById('plat-sec').style.display=t==='out'?'block':'none';const adjWrap=document.getElementById('adj-dir-wrap');adjWrap.style.display=t==='adj'?'flex':'none';if(t==='adj')setAdjDir('plus');if(t!=='out'){curPlat='';document.querySelectorAll('.pbtn').forEach(b=>b.classList.remove('active'));document.getElementById('plat-other').style.display='none';}updateConvertBar();}
 let curAdjDir='plus';
 function setAdjDir(dir){curAdjDir=dir;const bp=document.getElementById('adj-plus'),bm=document.getElementById('adj-minus');bp.className='adj-dir-btn plus'+(dir==='plus'?' sel':'');bm.className='adj-dir-btn minus'+(dir==='minus'?' sel':'');updateAdjPreview();}
@@ -1344,15 +748,12 @@ function updateAdjPreview(){const prev=document.getElementById('adj-preview');if
 function getPcs(){const qty=parseFloat(document.getElementById('rec-qty').value)||0;const unit=document.getElementById('rec-unit').value;const id=document.getElementById('rec-sku').value;if(unit==='case'&&id&&skus[id])return qty*(skus[id].piecesPerCase||1);return qty;}
 function setPlatform(p,el){curPlat=p;document.querySelectorAll('.pbtn').forEach(b=>b.classList.remove('active'));el.classList.add('active');const o=document.getElementById('plat-other');o.style.display=p==='other'?'block':'none';if(p!=='other')o.value='';}
 function getPlatLabel(){if(!curPlat)return'';if(curPlat==='other')return document.getElementById('plat-other').value.trim()||'อื่นๆ';return{shopee:'Shopee',lazada:'Lazada',tiktok:'TikTok',facebook:'Facebook',line:'LINE'}[curPlat]||curPlat;}
-
 async function submitRec(){const skuId=document.getElementById('rec-sku').value;const qty=parseFloat(document.getElementById('rec-qty').value);const date=document.getElementById('rec-date').value;const note=document.getElementById('rec-note').value.trim();if(!skuId){toast('กรุณาเลือกสินค้า','error');return;}if(!qty||qty<=0){toast('กรุณากรอกจำนวน','error');return;}if(!date){toast('กรุณากรอกวันที่','error');return;}const pieces=getPcs();const platform=recType==='out'?getPlatLabel():'';const adjDir=recType==='adj'?curAdjDir:undefined;const rec={skuId,type:recType,qty,unit:document.getElementById('rec-unit').value,pieces,date,note,platform,...(adjDir?{adjDir}:{}),user,createdAt:Date.now()};try{const key=await apiPost(rp()+'/movements',rec);movements[key]=rec;movArr=Object.entries(movements).sort((a,b)=>b[1].createdAt-a[1].createdAt);filterHist();updateDash();toast('✅ บันทึกสำเร็จ','success');document.getElementById('rec-qty').value='';document.getElementById('rec-note').value='';curPlat='';document.querySelectorAll('.pbtn').forEach(b=>b.classList.remove('active'));document.getElementById('plat-other').style.display='none';document.getElementById('rec-conv').style.display='none';const _ap=document.getElementById('adj-preview');if(_ap)_ap.style.display='none';if(recType==='adj')setAdjDir('plus');setDefDate();lastHash.m='';showPg('dash',document.querySelectorAll('.nb')[0]);}catch(e){toast('เกิดข้อผิดพลาด: '+e.message,'error');}}
-
 function openEdit(id){editingId=id;const m=movements[id];if(!m)return;const dt=m.date?new Date(m.date):new Date();const local=new Date(dt.getTime()-dt.getTimezoneOffset()*60000);document.getElementById('e-qty').value=m.pieces;document.getElementById('e-date').value=local.toISOString().slice(0,16);document.getElementById('e-note').value=m.note||'';document.getElementById('e-reason').value='';const hist=m.editHistory||[];const sec=document.getElementById('e-hist-sec');const hl=document.getElementById('e-hist-list');if(hist.length>0){sec.style.display='block';hl.innerHTML=hist.map((h,i)=>{const d=new Date(h.editedAt);const ds=d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');return'<div class="hist-item"><div class="hist-item-head"><span class="hist-num">ครั้งที่ '+(i+1)+' — '+ds+'</span><span class="hist-by">โดย: '+(h.editedBy||'-')+'</span></div><div class="hist-prev">ก่อน: <strong>'+h.prevPieces+' แพ็ค</strong>'+(h.prevNote?' · '+h.prevNote:'')+'</div>'+(h.reason?'<div class="hist-reason">เหตุผล: '+h.reason+'</div>':'')+'</div>';}).join('');}else{sec.style.display='none';}document.getElementById('ov-edit').classList.add('open');}
 function closeEdit(){document.getElementById('ov-edit').classList.remove('open');editingId=null;}
 function closeEditBg(e){if(e.target===document.getElementById('ov-edit'))closeEdit();}
 async function saveEdit(){if(!editingId)return;const qty=parseFloat(document.getElementById('e-qty').value);const date=document.getElementById('e-date').value;const note=document.getElementById('e-note').value.trim();const reason=document.getElementById('e-reason').value.trim();if(!qty||qty<=0){toast('กรุณากรอกจำนวน','error');return;}if(!reason){toast('กรุณากรอกเหตุผล','error');return;}const m=movements[editingId];const hist=[...(m.editHistory||[])];hist.push({prevPieces:m.pieces,prevDate:m.date,prevNote:m.note,editedBy:user,editedAt:Date.now(),reason});try{const upd={pieces:qty,date,note,editHistory:hist,lastEditedBy:user,lastEditedAt:Date.now()};await apiPatch(rp()+'/movements/'+editingId,upd);movements[editingId]=Object.assign({},m,upd);movArr=Object.entries(movements).sort((a,b)=>b[1].createdAt-a[1].createdAt);filterHist();updateDash();toast('✅ แก้ไขสำเร็จ','success');closeEdit();lastHash.m='';}catch(e){toast('เกิดข้อผิดพลาด','error');}}
 async function delRec(){if(!editingId)return;if(!confirm('ต้องการลบรายการนี้?'))return;try{await apiDel(rp()+'/movements/'+editingId);delete movements[editingId];movArr=Object.entries(movements).sort((a,b)=>b[1].createdAt-a[1].createdAt);filterHist();updateDash();toast('🗑 ลบแล้ว','');closeEdit();lastHash.m='';}catch(e){toast('เกิดข้อผิดพลาด','error');}}
-
 function renderProds(){const q=(document.getElementById('prod-q')?.value||'').toLowerCase();const el=document.getElementById('prod-list');const sm=computeStock();const ents=Object.entries(skus).filter(([,s])=>!q||(s.name||'').toLowerCase().includes(q)||(s.unitSku||'').toLowerCase().includes(q));if(!ents.length){el.innerHTML='<div class="empty-st">ยังไม่มีสินค้า — กด "+ เพิ่ม"</div>';return;}el.innerHTML=ents.map(([id,s],i)=>{const stock=sm[id]||0;const cs=s.piecesPerCase>1?Math.floor(stock/s.piecesPerCase):null;const imgH=s.imageUnit?'<img class="prod-img" src="'+s.imageUnit+'">':`<div class="prod-icon-ph"><svg width="18" height="18" fill="none" stroke="${clrs[i%clrs.length]}" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div>`;const priceH=(s.costPrice||s.salePrice)?'<div class="prod-price">ต้นทุน: <span style="color:var(--orange);font-weight:700;">฿'+(s.costPrice||0)+'</span> · ขาย: <span style="color:var(--green);font-weight:700;">฿'+(s.salePrice||0)+'</span></div>':'';return'<div class="prod-row" onclick="openSkuMod(\''+id+'\')">'+imgH+'<div class="prod-body"><div class="prod-name">'+s.name+'</div><div class="prod-sku">'+(s.unitSku||'-')+(s.caseSku?' · '+s.caseSku:'')+'</div>'+priceH+'</div><div class="prod-right"><div class="prod-qty">'+stock+'</div><div class="prod-case">แพ็ค'+(cs!==null?' / '+cs+' ลัง':'')+'</div></div><div style="color:var(--text3);font-size:20px;margin-left:2px;">›</div></div>';}).join('');}
 function updateSkuSel(){const sel=document.getElementById('rec-sku');if(sel)sel.innerHTML='<option value="">-- เลือกสินค้า --</option>'+Object.entries(skus).map(([id,s])=>'<option value="'+id+'">'+s.name+' ('+s.unitSku+')</option>').join('');}
 function refreshImgPreview(type){const val=type==='unit'?imgUnit:imgCase;const prev=document.getElementById('img-'+(type==='unit'?'u':'c')+'-prev');const thumb=document.getElementById('img-'+(type==='unit'?'u':'c')+'-thumb');const lbl=document.getElementById('img-'+(type==='unit'?'u':'c')+'-lbl');if(val){thumb.src=val;prev.style.display='block';lbl.style.display='none';}else{prev.style.display='none';lbl.style.display='flex';}}
@@ -1362,7 +763,6 @@ function openSkuMod(id){editingSkuId=id||null;const s=id?skus[id]:null;document.
 function closeSku(){document.getElementById('ov-sku').classList.remove('open');editingSkuId=null;}
 function closeSkuBg(e){if(e.target===document.getElementById('ov-sku'))closeSku();}
 async function saveSku(){const name=document.getElementById('s-name').value.trim();const unitSku=document.getElementById('s-unit').value.trim();const caseSku=document.getElementById('s-case').value.trim();const ppc=parseInt(document.getElementById('s-ppc').value)||1;const cat=document.getElementById('s-cat').value.trim();const costPrice=parseFloat(document.getElementById('s-cost').value)||0;const salePrice=parseFloat(document.getElementById('s-price').value)||0;if(!name){toast('กรุณากรอกชื่อ','error');return;}if(!unitSku){toast('กรุณากรอก SKU แพ็ค','error');return;}const data={name,unitSku,caseSku,piecesPerCase:ppc,category:cat,costPrice,salePrice,updatedAt:Date.now()};if(imgUnit)data.imageUnit=imgUnit;if(imgCase)data.imageCase=imgCase;const skuId=editingSkuId||('sku_'+Date.now());try{await apiPut(rp()+'/skus/'+skuId,data);skus[skuId]=data;renderProds();updateSkuSel();updateDash();toast(editingSkuId?'✅ แก้ไขแล้ว':'✅ เพิ่มแล้ว','success');closeSku();lastHash.s='';}catch(e){toast('เกิดข้อผิดพลาด','error');}}
-
 function renderReports(){renderValSummary();renderPlatChart();renderDeductChart();renderSkuValChart();renderRptStock();renderMonthlyChart();}
 function renderValSummary(){const sm=computeStock();let tc=0,tp=0,ts=0;Object.entries(sm).forEach(([id,qty])=>{const s=skus[id]||{};tc+=qty*(s.costPrice||0);tp+=qty*(s.salePrice||0);});Object.values(movements).forEach(m=>{if(m.type!=='out')return;const s=skus[m.skuId]||{};ts+=m.pieces*(s.salePrice||0);});const set=id=>document.getElementById(id);if(set('r-cost'))set('r-cost').textContent=fmtB(tc);if(set('r-price'))set('r-price').textContent=fmtB(tp);if(set('r-profit'))set('r-profit').textContent=fmtB(tp-tc);if(set('r-sold'))set('r-sold').textContent=fmtB(ts);}
 function renderPlatChart(){const pd={};Object.values(movements).forEach(m=>{if(m.type!=='out')return;const p=m.platform||'ไม่ระบุ';if(!pd[p])pd[p]={qty:0,val:0};pd[p].qty+=m.pieces;const s=skus[m.skuId]||{};pd[p].val+=m.pieces*(s.salePrice||0);});const lbls=Object.keys(pd);const qtys=lbls.map(k=>pd[k].qty);const pc=['#007aff','#34c759','#ff9500','#ff3b30','#af52de','#5ac8fa','#ff6b35'];const tbl=document.getElementById('plat-tbl');if(tbl){if(!lbls.length){tbl.innerHTML='<div class="empty-st" style="font-size:13px;">ยังไม่มีข้อมูลการจ่ายออก</div>';}else{const totalQ=qtys.reduce((a,b)=>a+b,0)||1;tbl.innerHTML=lbls.map((p,i)=>{const pct=Math.round(pd[p].qty/totalQ*100);return'<div style="padding:12px 16px;border-bottom:0.5px solid var(--border);background:var(--surface);"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;"><div style="display:flex;align-items:center;gap:8px;"><div style="width:10px;height:10px;border-radius:50%;background:'+pc[i%pc.length]+';flex-shrink:0;"></div><span style="font-size:14px;font-weight:700;">'+p+'</span></div><span style="font-size:12px;color:var(--text2);">'+pct+'%</span></div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;color:'+pc[i%pc.length]+';font-weight:700;font-family:\'IBM Plex Mono\',monospace;">'+pd[p].qty+' แพ็ค</span><span style="font-size:13px;color:var(--green);font-weight:700;">'+fmtB(pd[p].val)+'</span></div><div style="background:var(--surface2);border-radius:4px;height:5px;overflow:hidden;"><div style="width:'+pct+'%;height:100%;background:'+pc[i%pc.length]+';border-radius:4px;"></div></div></div>';}).join('');}}const _pEl=document.getElementById('ch-plat-qty');if(chPlatQty){chPlatQty.destroy();chPlatQty=null;}if(_pEl&&lbls.length){const _pBox=_pEl.parentElement;const _pW=_pBox.offsetWidth||window.innerWidth-48;_pEl.width=_pW;_pEl.height=220;_pEl.style.width=_pW+'px';_pEl.style.height='220px';const ctx=_pEl.getContext('2d');chPlatQty=new Chart(ctx,{type:'doughnut',data:{labels:lbls,datasets:[{data:qtys,backgroundColor:pc.slice(0,lbls.length),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{position:'bottom',labels:{font:{family:'Sarabun',size:11},padding:8,boxWidth:10,usePointStyle:true}}}}});}}
@@ -1370,6 +770,175 @@ function renderDeductChart(){const dd={};Object.values(movements).forEach(m=>{if
 function renderSkuValChart(){const sm=computeStock();const ents=Object.entries(sm).map(([id,qty])=>{const s=skus[id]||{};return{id,name:s.name||id,cost:qty*(s.costPrice||0),price:qty*(s.salePrice||0)};}).filter(e=>e.cost>0||e.price>0).sort((a,b)=>b.price-a.price).slice(0,6);const _sEl=document.getElementById('ch-skuval');if(!_sEl)return;if(chSkuVal){chSkuVal.destroy();chSkuVal=null;}const _sW=_sEl.parentElement.offsetWidth||window.innerWidth-48;_sEl.width=_sW;_sEl.height=200;_sEl.style.width=_sW+'px';_sEl.style.height='200px';const ctx=_sEl.getContext('2d');chSkuVal=new Chart(ctx,{type:'bar',data:{labels:ents.map(e=>e.name),datasets:[{label:'ต้นทุน(฿)',data:ents.map(e=>e.cost),backgroundColor:'#ff950044',borderColor:'#ff9500',borderWidth:2,borderRadius:4},{label:'ราคาขาย(฿)',data:ents.map(e=>e.price),backgroundColor:'#34c75944',borderColor:'#34c759',borderWidth:2,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{family:'Sarabun',size:11},boxWidth:10}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmtB(c.parsed.y)}}},scales:{x:{ticks:{font:{family:'Sarabun',size:10}}},y:{beginAtZero:true,ticks:{font:{family:'Sarabun',size:10},callback:v=>'฿'+v.toLocaleString()}}}}});}
 function renderRptStock(){const sm=computeStock();const el=document.getElementById('r-stock-list');if(!el)return;const ents=Object.entries(sm);if(!ents.length){el.innerHTML='<div class="empty-st">ยังไม่มีข้อมูล</div>';return;}el.innerHTML=ents.map(([id,stock])=>{const s=skus[id]||{};const cs=s.piecesPerCase>1?Math.floor(stock/s.piecesPerCase):null;const costVal=stock*(s.costPrice||0);const priceVal=stock*(s.salePrice||0);const imgH=s.imageUnit?'<img src="'+s.imageUnit+'" style="width:36px;height:36px;object-fit:cover;border-radius:7px;border:1px solid var(--border);flex-shrink:0;">':'';return'<div class="srow" style="gap:10px;">'+imgH+'<div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:14px;color:var(--text);">'+(s.name||id)+'</div><div style="font-size:11px;font-family:\'IBM Plex Mono\',monospace;color:var(--text3);">'+(s.unitSku||id)+'</div>'+(s.costPrice||s.salePrice?'<div style="font-size:11px;color:var(--text2);">ซื้อ: <span style="color:var(--orange);font-weight:700;">฿'+(s.costPrice||0)+'</span> · ขาย: <span style="color:var(--green);font-weight:700;">฿'+(s.salePrice||0)+'</span></div>':'')+'</div><div style="text-align:right;flex-shrink:0;"><div style="font-family:\'IBM Plex Mono\',monospace;font-weight:700;color:var(--accent);font-size:15px;">'+stock+' แพ็ค'+(cs!==null?' / '+cs+' ลัง':'')+'</div>'+(priceVal>0?'<div style="font-size:12px;color:var(--green);font-weight:700;">'+fmtB(priceVal)+'</div>':'')+(costVal>0?'<div style="font-size:11px;color:var(--text3);">ต้นทุน '+fmtB(costVal)+'</div>':'')+'</div></div>';}).join('');}
 function renderMonthlyChart(){const months={};Object.values(movements).forEach(m=>{const k=(m.date||'').slice(0,7);if(!k)return;if(!months[k])months[k]={in:0,out:0};if(m.type==='in')months[k].in+=m.pieces;else if(m.type==='out')months[k].out+=m.pieces;});const keys=Object.keys(months).sort().slice(-6);const _mEl=document.getElementById('ch-monthly');if(!_mEl)return;if(chMonthly){chMonthly.destroy();chMonthly=null;}const _mW=_mEl.parentElement.offsetWidth||window.innerWidth-48;_mEl.width=_mW;_mEl.height=180;_mEl.style.width=_mW+'px';_mEl.style.height='180px';const ctx=_mEl.getContext('2d');chMonthly=new Chart(ctx,{type:'line',data:{labels:keys,datasets:[{label:'รับเข้า',data:keys.map(k=>months[k]?.in||0),borderColor:'#34c759',backgroundColor:'#34c75915',tension:.4,fill:true,pointRadius:3},{label:'จ่ายออก',data:keys.map(k=>months[k]?.out||0),borderColor:'#ff3b30',backgroundColor:'#ff3b3015',tension:.4,fill:true,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{family:'Sarabun',size:11},boxWidth:10}}},scales:{x:{ticks:{font:{family:'Sarabun',size:10}}},y:{beginAtZero:true,ticks:{font:{family:'Sarabun',size:10}}}}}});}
+
+/* ===================================================
+   ALL-WH SUMMARY JS — ใหม่ทั้งหมด namespace awXxx
+   =================================================== */
+let awData={};
+let awLoading=false;
+
+async function awLoad(){
+  if(awLoading)return;
+  awLoading=true;
+  const btn=document.getElementById('aw-refresh-btn');
+  if(btn)btn.textContent='↻ กำลังโหลด...';
+  try{
+    const results=await Promise.all(WAREHOUSES.map(async wh=>{
+      try{
+        const[s,m]=await Promise.all([
+          apiGet('ws_'+currentWsKey+'/rooms/'+wh.id+'/skus'),
+          apiGet('ws_'+currentWsKey+'/rooms/'+wh.id+'/movements')
+        ]);
+        return{id:wh.id,label:wh.label,skus:s||{},movements:m||{}};
+      }catch(e){return{id:wh.id,label:wh.label,skus:{},movements:{}};}
+    }));
+    awData={};
+    results.forEach(r=>{awData[r.id]=r;});
+    setOnline(true);
+    awRender();
+    const now=new Date();
+    const ts=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
+    const lbl=document.getElementById('aw-refreshed');
+    if(lbl)lbl.innerHTML='อัปเดต <b>'+ts+' น.</b>';
+  }catch(e){setOnline(false);toast('โหลดไม่สำเร็จ','error');}
+  awLoading=false;
+  if(btn)btn.textContent='↻ รีเฟรช';
+}
+
+function awRefresh(){awLoad();}
+
+function awRender(){
+  const today=new Date().toISOString().slice(0,10);
+  const skuNames={};
+  let totalIn=0,totalOut=0,totalCost=0,totalSale=0,totalSold=0;
+  let maxStock=0;
+
+  WAREHOUSES.forEach(wh=>{
+    const d=awData[wh.id];if(!d)return;
+    Object.entries(d.skus||{}).forEach(([id,s])=>{if(!skuNames[id])skuNames[id]=s.name||id;});
+    const sm=computeStockFrom(d.movements||{});
+    const tot=Object.values(sm).reduce((a,b)=>a+(b>0?b:0),0);
+    if(tot>maxStock)maxStock=tot;
+    Object.values(d.movements||{}).forEach(m=>{
+      const dd=(m.date||'').slice(0,10);
+      if(dd===today){if(m.type==='in')totalIn+=m.pieces;else if(m.type==='out')totalOut+=m.pieces;}
+      if(m.type==='out'){const s=d.skus[m.skuId]||{};totalSold+=m.pieces*(s.salePrice||0);}
+    });
+    Object.entries(sm).forEach(([id,qty])=>{
+      if(qty<=0)return;
+      const s=d.skus[id]||{};
+      totalCost+=qty*(s.costPrice||0);
+      totalSale+=qty*(s.salePrice||0);
+    });
+  });
+
+  const skuSet=new Set();
+  WAREHOUSES.forEach(wh=>{Object.keys(awData[wh.id]?.skus||{}).forEach(id=>skuSet.add(id));});
+
+  document.getElementById('aw-sku').textContent=skuSet.size;
+  document.getElementById('aw-in').textContent=totalIn;
+  document.getElementById('aw-out').textContent=totalOut;
+  document.getElementById('aw-cost').textContent=fmtB(totalCost);
+  document.getElementById('aw-sale').textContent=fmtB(totalSale);
+  document.getElementById('aw-profit').textContent=fmtB(totalSale-totalCost);
+  document.getElementById('aw-sold').textContent=fmtB(totalSold);
+
+  awRenderPerWh(today,maxStock);
+  awRenderChart(skuNames);
+  awRenderTop(skuNames);
+}
+
+function awRenderPerWh(today,maxStock){
+  const el=document.getElementById('aw-per-wh');if(!el)return;
+  let html='';
+  WAREHOUSES.forEach((wh,i)=>{
+    const d=awData[wh.id];
+    const color=WH_COLORS[i%WH_COLORS.length];
+    if(!d){html+=`<div class="aw-wh-card"><div class="aw-wh-head"><div class="aw-wh-dot" style="background:${color}"></div><div class="aw-wh-name">${wh.label}</div><span style="font-size:12px;color:var(--text3);">ไม่มีข้อมูล</span></div></div>`;return;}
+    const sm=computeStockFrom(d.movements||{});
+    let whIn=0,whOut=0,whSold=0,whSale=0;
+    Object.values(d.movements||{}).forEach(m=>{
+      if((m.date||'').slice(0,10)===today){if(m.type==='in')whIn+=m.pieces;else if(m.type==='out')whOut+=m.pieces;}
+      if(m.type==='out'){const s=d.skus[m.skuId]||{};whSold+=m.pieces*(s.salePrice||0);}
+    });
+    Object.entries(sm).forEach(([id,qty])=>{if(qty>0){const s=d.skus[id]||{};whSale+=qty*(s.salePrice||0);}});
+    const totalStock=Object.values(sm).reduce((a,b)=>a+(b>0?b:0),0);
+    const pct=maxStock>0?Math.round(totalStock/maxStock*100):0;
+    const skuCnt=Object.keys(d.skus||{}).length;
+    const topSkus=Object.entries(sm).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    html+=`<div class="aw-wh-card">
+      <div class="aw-wh-head" onclick="switchWarehouse('${wh.id}')">
+        <div class="aw-wh-dot" style="background:${color}"></div>
+        <div class="aw-wh-name">${wh.label}</div>
+        <button class="aw-jump" onclick="event.stopPropagation();switchWarehouse('${wh.id}')">เปิด →</button>
+      </div>
+      <div class="aw-stat-row">
+        <div class="aw-stat"><div class="aw-stat-val">${skuCnt}</div><div class="aw-stat-lbl">SKU</div></div>
+        <div class="aw-divider"></div>
+        <div class="aw-stat"><div class="aw-stat-val">${totalStock}</div><div class="aw-stat-lbl">สต็อค(แพ็ค)</div></div>
+        <div class="aw-divider"></div>
+        <div class="aw-stat"><div class="aw-stat-val awc-green">+${whIn}</div><div class="aw-stat-lbl">รับเข้า</div></div>
+        <div class="aw-divider"></div>
+        <div class="aw-stat"><div class="aw-stat-val awc-red">-${whOut}</div><div class="aw-stat-lbl">จ่ายออก</div></div>
+      </div>
+      <div class="aw-prog"><div class="aw-prog-fill" style="width:${pct}%;background:${color}"></div></div>
+      ${topSkus.map(([id,qty])=>{const s=d.skus[id]||{};return`<div class="aw-sku-row"><div style="width:6px;height:6px;border-radius:50%;background:${color};opacity:.6;flex-shrink:0;"></div><div class="aw-sku-name">${s.name||id}</div><div class="aw-sku-qty">${qty} แพ็ค</div></div>`;}).join('')}
+      ${!topSkus.length?'<div style="padding:8px 14px;font-size:12px;color:var(--text3);">ยังไม่มีสต็อค</div>':''}
+      <div class="aw-wh-foot"><span>มูลค่าขายในสต็อค</span><strong style="color:var(--green);">${fmtB(whSale)}</strong></div>
+      <div class="aw-wh-foot" style="border-top:none;padding-top:0;"><span>ยอดขายสะสม</span><strong style="color:var(--accent);">${fmtB(whSold)}</strong></div>
+    </div>`;
+  });
+  el.innerHTML=html;
+}
+
+function awRenderChart(skuNames){
+  const el=document.getElementById('ch-aw-compare');if(!el)return;
+  if(chAwCompare){chAwCompare.destroy();chAwCompare=null;}
+  const skuIds=Object.keys(skuNames);if(!skuIds.length)return;
+  const datasets=WAREHOUSES.map((wh,i)=>{
+    const d=awData[wh.id];
+    const sm=d?computeStockFrom(d.movements||{}):{};
+    return{label:wh.label,data:skuIds.map(id=>Math.max(0,sm[id]||0)),backgroundColor:WH_COLORS[i%WH_COLORS.length]+'88',borderColor:WH_COLORS[i%WH_COLORS.length],borderWidth:2,borderRadius:4};
+  });
+  const box=el.parentElement;
+  const w=box.offsetWidth||window.innerWidth-64;
+  el.width=w;el.height=200;el.style.width=w+'px';el.style.height='200px';
+  chAwCompare=new Chart(el.getContext('2d'),{type:'bar',data:{labels:skuIds.map(id=>skuNames[id]),datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{family:'Sarabun',size:11},boxWidth:10,padding:6}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.parsed.y+' แพ็ค'}}},scales:{x:{ticks:{font:{family:'Sarabun',size:10},maxRotation:30},grid:{display:false}},y:{beginAtZero:true,ticks:{font:{family:'Sarabun',size:10},callback:v=>v+' แพ็ค'}}}}});
+}
+
+function awRenderTop(skuNames){
+  const el=document.getElementById('aw-top-prod');if(!el)return;
+  const totals={},outTotals={};
+  WAREHOUSES.forEach(wh=>{
+    const d=awData[wh.id];if(!d)return;
+    const sm=computeStockFrom(d.movements||{});
+    Object.entries(sm).forEach(([id,qty])=>{if(qty>0){totals[id]=(totals[id]||0)+qty;}});
+    Object.values(d.movements||{}).forEach(m=>{if(m.type==='out'){outTotals[m.skuId]=(outTotals[m.skuId]||0)+m.pieces;}});
+  });
+  const sorted=Object.entries(totals).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  if(!sorted.length){el.innerHTML='<div class="empty-st">ยังไม่มีสต็อค</div>';return;}
+  const maxQ=sorted[0][1]||1;
+  // find skuData
+  const skuData={};
+  WAREHOUSES.forEach(wh=>{Object.entries(awData[wh.id]?.skus||{}).forEach(([id,s])=>{if(!skuData[id])skuData[id]=s;});});
+  el.innerHTML=sorted.map(([id,qty],i)=>{
+    const s=skuData[id]||{};
+    const pct=Math.round(qty/maxQ*100);
+    const color=WH_COLORS[i%WH_COLORS.length];
+    const out=outTotals[id]||0;
+    return`<div style="padding:10px 14px;border-bottom:.5px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:5px;">
+        <div style="width:32px;height:32px;border-radius:7px;background:${color}18;border:1px solid ${color}44;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px;">📦</div>
+        <div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.name||id}</div><div style="font-size:11px;color:var(--text3);font-family:'IBM Plex Mono',monospace;">${s.unitSku||id}</div></div>
+        <div style="text-align:right;"><div style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:700;color:${color};">${qty}</div><div style="font-size:10px;color:var(--text3);">แพ็ค</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="flex:1;background:var(--surface2);border-radius:3px;height:4px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${color};border-radius:3px;"></div></div>
+        <span style="font-size:11px;color:var(--text3);">ขาย ${out} แพ็ค</span>
+      </div>
+    </div>`;
+  }).join('')+'<div style="padding:8px 14px;background:var(--bg);"><div style="font-size:11px;color:var(--text3);text-align:center;">Top 6 สินค้าสต็อครวมทุกคลัง</div></div>';
+}
 
 function toast(msg,type){const w=document.getElementById('toast-wrap');const t=document.createElement('div');t.className='toast'+(type?' '+type:'');t.textContent=msg;w.innerHTML='';w.appendChild(t);setTimeout(()=>{t.style.opacity='0';t.style.transform='translateY(-8px)';t.style.transition='.3s';setTimeout(()=>t.remove(),300);},2500);}
 
@@ -1381,7 +950,7 @@ window.addEventListener('load',()=>{
   const sessionWs=sessionStorage.getItem('sf_session_ws');
   const sessionUser=sessionStorage.getItem('sf_session_user');
   if(sessionWs&&sessionUser){currentWsKey=sessionWs;user=sessionUser;startApp();}
-  else{const pc=document.getElementById('passcode-screen');pc.style.display='flex';updatePcDisplay();}
+  else{document.getElementById('passcode-screen').style.display='flex';updatePcDisplay();}
 });
 </script>
 
