@@ -3,6 +3,9 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -809,33 +812,33 @@ function awRefresh(){awLoad();}
 
 function awRender(){
   const today=new Date().toISOString().slice(0,10);
-  const skuNames={};
-  let totalIn=0,totalOut=0,totalCost=0,totalSale=0,totalSold=0;
-  let maxStock=0;
-
+  // Build global name->skuIds map (group same-name products across warehouses)
+  const nameToIds={}; // productName -> [{ whId, skuId, skuData }]
+  const skuMasterByWh={}; // whId -> { skuId -> skuData }
   WAREHOUSES.forEach(wh=>{
-    const d=awData[wh.id];if(!d)return;
-    Object.entries(d.skus||{}).forEach(([id,s])=>{if(!skuNames[id])skuNames[id]=s.name||id;});
-    const sm=computeStockFrom(d.movements||{});
-    const tot=Object.values(sm).reduce((a,b)=>a+(b>0?b:0),0);
-    if(tot>maxStock)maxStock=tot;
-    Object.values(d.movements||{}).forEach(m=>{
-      const dd=(m.date||'').slice(0,10);
-      if(dd===today){if(m.type==='in')totalIn+=m.pieces;else if(m.type==='out')totalOut+=m.pieces;}
-      if(m.type==='out'){const s=d.skus[m.skuId]||{};totalSold+=m.pieces*(s.salePrice||0);}
-    });
-    Object.entries(sm).forEach(([id,qty])=>{
-      if(qty<=0)return;
-      const s=d.skus[id]||{};
-      totalCost+=qty*(s.costPrice||0);
-      totalSale+=qty*(s.salePrice||0);
+    const d=awData[wh.id]; if(!d) return;
+    skuMasterByWh[wh.id]=d.skus||{};
+    Object.entries(d.skus||{}).forEach(([skuId,s])=>{
+      const nm=(s.name||skuId).trim();
+      if(!nameToIds[nm]) nameToIds[nm]=[];
+      nameToIds[nm].push({whId:wh.id,skuId,s});
     });
   });
 
-  const skuSet=new Set();
-  WAREHOUSES.forEach(wh=>{Object.keys(awData[wh.id]?.skus||{}).forEach(id=>skuSet.add(id));});
+  let totalIn=0,totalOut=0,totalCost=0,totalSale=0,totalSold=0;
+  let skuSet=new Set();
+  WAREHOUSES.forEach(wh=>{
+    const d=awData[wh.id]; if(!d) return;
+    Object.keys(d.skus||{}).forEach(id=>skuSet.add(id));
+    const sm=computeStockFrom(d.movements||{});
+    Object.values(d.movements||{}).forEach(m=>{
+      if((m.date||'').slice(0,10)===today){if(m.type==='in')totalIn+=m.pieces;else if(m.type==='out')totalOut+=m.pieces;}
+      if(m.type==='out'){const s=d.skus[m.skuId]||{};totalSold+=m.pieces*(s.salePrice||0);}
+    });
+    Object.entries(sm).forEach(([id,qty])=>{if(qty>0){const s=d.skus[id]||{};totalCost+=qty*(s.costPrice||0);totalSale+=qty*(s.salePrice||0);}});
+  });
 
-  document.getElementById('aw-sku').textContent=skuSet.size;
+  document.getElementById('aw-sku').textContent=Object.keys(nameToIds).length;
   document.getElementById('aw-in').textContent=totalIn;
   document.getElementById('aw-out').textContent=totalOut;
   document.getElementById('aw-cost').textContent=fmtB(totalCost);
@@ -843,19 +846,29 @@ function awRender(){
   document.getElementById('aw-profit').textContent=fmtB(totalSale-totalCost);
   document.getElementById('aw-sold').textContent=fmtB(totalSold);
 
-  awRenderPerWh(today,maxStock);
-  awRenderChart(skuNames);
-  awRenderTop(skuNames);
+  // Compute stock per warehouse per name
+  const smByWh={}; // whId -> { skuId -> qty }
+  let maxStock=0;
+  WAREHOUSES.forEach(wh=>{
+    const d=awData[wh.id]; if(!d) return;
+    smByWh[wh.id]=computeStockFrom(d.movements||{});
+    const tot=Object.values(smByWh[wh.id]).reduce((a,b)=>a+(b>0?b:0),0);
+    if(tot>maxStock) maxStock=tot;
+  });
+
+  awRenderPerWh(today,maxStock,smByWh);
+  awRenderChart(nameToIds,smByWh);
+  awRenderTop(nameToIds,smByWh);
 }
 
-function awRenderPerWh(today,maxStock){
-  const el=document.getElementById('aw-per-wh');if(!el)return;
+function awRenderPerWh(today,maxStock,smByWh){
+  const el=document.getElementById('aw-per-wh'); if(!el) return;
   let html='';
   WAREHOUSES.forEach((wh,i)=>{
     const d=awData[wh.id];
     const color=WH_COLORS[i%WH_COLORS.length];
     if(!d){html+=`<div class="aw-wh-card"><div class="aw-wh-head"><div class="aw-wh-dot" style="background:${color}"></div><div class="aw-wh-name">${wh.label}</div><span style="font-size:12px;color:var(--text3);">ไม่มีข้อมูล</span></div></div>`;return;}
-    const sm=computeStockFrom(d.movements||{});
+    const sm=smByWh[wh.id]||{};
     let whIn=0,whOut=0,whSold=0,whSale=0;
     Object.values(d.movements||{}).forEach(m=>{
       if((m.date||'').slice(0,10)===today){if(m.type==='in')whIn+=m.pieces;else if(m.type==='out')whOut+=m.pieces;}
@@ -891,54 +904,131 @@ function awRenderPerWh(today,maxStock){
   el.innerHTML=html;
 }
 
-function awRenderChart(skuNames){
-  const el=document.getElementById('ch-aw-compare');if(!el)return;
+function awRenderChart(nameToIds,smByWh){
+  const el=document.getElementById('ch-aw-compare'); if(!el) return;
   if(chAwCompare){chAwCompare.destroy();chAwCompare=null;}
-  const skuIds=Object.keys(skuNames);if(!skuIds.length)return;
+  const productNames=Object.keys(nameToIds);
+  if(!productNames.length) return;
+
+  // Stacked bar: one dataset per warehouse, grouped by product name
   const datasets=WAREHOUSES.map((wh,i)=>{
-    const d=awData[wh.id];
-    const sm=d?computeStockFrom(d.movements||{}):{};
-    return{label:wh.label,data:skuIds.map(id=>Math.max(0,sm[id]||0)),backgroundColor:WH_COLORS[i%WH_COLORS.length]+'88',borderColor:WH_COLORS[i%WH_COLORS.length],borderWidth:2,borderRadius:4};
+    const color=WH_COLORS[i%WH_COLORS.length];
+    const sm=smByWh[wh.id]||{};
+    const data=productNames.map(nm=>{
+      // sum all skuIds with this name in this warehouse
+      const entries=nameToIds[nm].filter(e=>e.whId===wh.id);
+      return entries.reduce((sum,e)=>sum+Math.max(0,sm[e.skuId]||0),0);
+    });
+    return{
+      label:wh.label,
+      data,
+      backgroundColor:color+'bb',
+      borderColor:color,
+      borderWidth:1.5,
+      borderRadius:3,
+      stack:'stock'
+    };
   });
+
   const box=el.parentElement;
   const w=box.offsetWidth||window.innerWidth-64;
-  el.width=w;el.height=200;el.style.width=w+'px';el.style.height='200px';
-  chAwCompare=new Chart(el.getContext('2d'),{type:'bar',data:{labels:skuIds.map(id=>skuNames[id]),datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{family:'Sarabun',size:11},boxWidth:10,padding:6}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.parsed.y+' แพ็ค'}}},scales:{x:{ticks:{font:{family:'Sarabun',size:10},maxRotation:30},grid:{display:false}},y:{beginAtZero:true,ticks:{font:{family:'Sarabun',size:10},callback:v=>v+' แพ็ค'}}}}});
+  el.width=w; el.height=220; el.style.width=w+'px'; el.style.height='220px';
+  chAwCompare=new Chart(el.getContext('2d'),{
+    type:'bar',
+    data:{labels:productNames,datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'top',labels:{font:{family:'Sarabun',size:11},boxWidth:10,padding:6}},
+        tooltip:{callbacks:{
+          title:ctx=>ctx[0].label,
+          label:ctx=>ctx.dataset.label+': '+ctx.parsed.y+' แพ็ค',
+          footer:ctx=>{
+            const total=ctx.reduce((s,c)=>s+c.parsed.y,0);
+            return total>0?'รวม: '+total+' แพ็ค':'';
+          }
+        }}
+      },
+      scales:{
+        x:{stacked:true,ticks:{font:{family:'Sarabun',size:10},maxRotation:30},grid:{display:false}},
+        y:{stacked:true,beginAtZero:true,ticks:{font:{family:'Sarabun',size:10},callback:v=>v+' แพ็ค'}}
+      }
+    }
+  });
 }
 
-function awRenderTop(skuNames){
-  const el=document.getElementById('aw-top-prod');if(!el)return;
-  const totals={},outTotals={};
+function awRenderTop(nameToIds,smByWh){
+  const el=document.getElementById('aw-top-prod'); if(!el) return;
+  // Find skuData for each name (pick first found)
+  const skuDataByName={};
+  WAREHOUSES.forEach(wh=>{Object.entries(awData[wh.id]?.skus||{}).forEach(([id,s])=>{const nm=(s.name||id).trim();if(!skuDataByName[nm])skuDataByName[nm]=s;});});
+
+  // Compute total stock per product name + per-warehouse breakdown
+  const outByName={};
   WAREHOUSES.forEach(wh=>{
-    const d=awData[wh.id];if(!d)return;
-    const sm=computeStockFrom(d.movements||{});
-    Object.entries(sm).forEach(([id,qty])=>{if(qty>0){totals[id]=(totals[id]||0)+qty;}});
-    Object.values(d.movements||{}).forEach(m=>{if(m.type==='out'){outTotals[m.skuId]=(outTotals[m.skuId]||0)+m.pieces;}});
+    Object.values(awData[wh.id]?.movements||{}).forEach(m=>{
+      if(m.type!=='out'){return;}
+      const s=awData[wh.id]?.skus[m.skuId]||{};
+      const nm=(s.name||m.skuId).trim();
+      outByName[nm]=(outByName[nm]||0)+m.pieces;
+    });
   });
-  const sorted=Object.entries(totals).sort((a,b)=>b[1]-a[1]).slice(0,6);
-  if(!sorted.length){el.innerHTML='<div class="empty-st">ยังไม่มีสต็อค</div>';return;}
-  const maxQ=sorted[0][1]||1;
-  // find skuData
-  const skuData={};
-  WAREHOUSES.forEach(wh=>{Object.entries(awData[wh.id]?.skus||{}).forEach(([id,s])=>{if(!skuData[id])skuData[id]=s;});});
-  el.innerHTML=sorted.map(([id,qty],i)=>{
-    const s=skuData[id]||{};
-    const pct=Math.round(qty/maxQ*100);
-    const color=WH_COLORS[i%WH_COLORS.length];
-    const out=outTotals[id]||0;
-    return`<div style="padding:10px 14px;border-bottom:.5px solid var(--border);">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:5px;">
-        <div style="width:32px;height:32px;border-radius:7px;background:${color}18;border:1px solid ${color}44;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px;">📦</div>
-        <div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.name||id}</div><div style="font-size:11px;color:var(--text3);font-family:'IBM Plex Mono',monospace;">${s.unitSku||id}</div></div>
-        <div style="text-align:right;"><div style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:700;color:${color};">${qty}</div><div style="font-size:10px;color:var(--text3);">แพ็ค</div></div>
+
+  const productNames=Object.keys(nameToIds);
+  const totals=productNames.map(nm=>{
+    let total=0;
+    const perWh={};
+    WAREHOUSES.forEach((wh,i)=>{
+      const sm=smByWh[wh.id]||{};
+      const entries=nameToIds[nm].filter(e=>e.whId===wh.id);
+      const qty=entries.reduce((sum,e)=>sum+Math.max(0,sm[e.skuId]||0),0);
+      total+=qty;
+      perWh[wh.id]={qty,color:WH_COLORS[i%WH_COLORS.length],label:wh.label};
+    });
+    return{nm,total,perWh};
+  }).filter(x=>x.total>0).sort((a,b)=>b.total-a.total).slice(0,6);
+
+  if(!totals.length){el.innerHTML='<div class="empty-st">ยังไม่มีสต็อค</div>';return;}
+  const maxQ=totals[0].total||1;
+
+  el.innerHTML=totals.map(({nm,total,perWh})=>{
+    const s=skuDataByName[nm]||{};
+    const out=outByName[nm]||0;
+    const pct=Math.round(total/maxQ*100);
+    // Build stacked bar segments
+    const segs=WAREHOUSES.map((wh,i)=>{
+      const pw=perWh[wh.id];
+      if(!pw||pw.qty<=0) return'';
+      const segW=Math.round(pw.qty/total*pct);
+      return`<div style="width:${segW}%;height:100%;background:${pw.color};flex-shrink:0;" title="${pw.label}: ${pw.qty} แพ็ค"></div>`;
+    }).join('');
+    // Per-warehouse qty chips
+    const chips=WAREHOUSES.map((wh,i)=>{
+      const pw=perWh[wh.id];
+      if(!pw||pw.qty<=0) return'';
+      return`<span style="font-size:11px;font-weight:700;color:${pw.color};background:${pw.color}18;border:1px solid ${pw.color}44;border-radius:6px;padding:2px 7px;white-space:nowrap;">${pw.label}: ${pw.qty}</span>`;
+    }).join('');
+
+    return`<div style="padding:11px 14px;border-bottom:.5px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nm}</div>
+          <div style="font-size:11px;color:var(--text3);font-family:'IBM Plex Mono',monospace;">${s.unitSku||''}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:700;color:var(--text);">${total}</div>
+          <div style="font-size:10px;color:var(--text3);">แพ็ครวม</div>
+        </div>
       </div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;">${chips}</div>
       <div style="display:flex;align-items:center;gap:8px;">
-        <div style="flex:1;background:var(--surface2);border-radius:3px;height:4px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${color};border-radius:3px;"></div></div>
-        <span style="font-size:11px;color:var(--text3);">ขาย ${out} แพ็ค</span>
+        <div style="flex:1;background:var(--surface2);border-radius:3px;height:6px;overflow:hidden;display:flex;">${segs}</div>
+        <span style="font-size:11px;color:var(--text3);white-space:nowrap;flex-shrink:0;">ขาย ${out} แพ็ค</span>
       </div>
     </div>`;
-  }).join('')+'<div style="padding:8px 14px;background:var(--bg);"><div style="font-size:11px;color:var(--text3);text-align:center;">Top 6 สินค้าสต็อครวมทุกคลัง</div></div>';
+  }).join('')+'<div style="padding:8px 14px;background:var(--bg);"><div style="font-size:11px;color:var(--text3);text-align:center;">สินค้าชื่อเดียวกันถูกรวมกัน แยกสีตามคลัง</div></div>';
 }
+
 
 function toast(msg,type){const w=document.getElementById('toast-wrap');const t=document.createElement('div');t.className='toast'+(type?' '+type:'');t.textContent=msg;w.innerHTML='';w.appendChild(t);setTimeout(()=>{t.style.opacity='0';t.style.transform='translateY(-8px)';t.style.transition='.3s';setTimeout(()=>t.remove(),300);},2500);}
 
