@@ -13,7 +13,9 @@
 <title>StockFlow</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script>
 /* ===================================================
    ANNOUNCEMENT SYSTEM
    =================================================== */
@@ -236,6 +238,263 @@ topRight.insertBefore(btn, topRight.firstChild);
 }
 }, 500);
 };
+
+/* ===================================================
+QR SCANNER SYSTEM
+=================================================== */
+let qrStream = null;
+let qrScanning = false;
+let qrAnimFrame = null;
+let qrPendingCode = null;
+let qrSelectedSkuId = null;
+let qrCooldown = {};        // code -> timestamp (ป้องกันสแกนซ้ำ)
+const QR_COOLDOWN_MS = 300000; // 5 นาที ห้ามตัดซ้ำ
+const qrMapPath = () => ‘ws_’ + currentWsKey + ‘/rooms/’ + room + ‘/qr_map’;
+const qrHistPath = () => ‘ws_’ + currentWsKey + ‘/rooms/’ + room + ‘/qr_history’;
+
+// –– open/close scanner ––
+async function openQrScanner() {
+if (room === ‘ALL’) { toast(‘กรุณาเลือกคลังก่อนสแกน’, ‘error’); return; }
+document.getElementById(‘qr-overlay’).classList.add(‘open’);
+document.getElementById(‘qr-result-bar’).classList.remove(‘show’);
+document.getElementById(‘qr-hint’).textContent = ‘จ่อ QR Code ในกรอบ’;
+try {
+qrStream = await navigator.mediaDevices.getUserMedia({
+video: { facingMode: ‘environment’, width: { ideal: 1280 }, height: { ideal: 720 } }
+});
+const video = document.getElementById(‘qr-video’);
+video.srcObject = qrStream;
+video.play();
+video.onloadedmetadata = () => { qrScanning = true; qrScanLoop(); };
+} catch(e) {
+toast(‘ไม่สามารถเปิดกล้องได้ กรุณาอนุญาตการเข้าถึงกล้อง’, ‘error’);
+closeQrScanner();
+}
+}
+
+function closeQrScanner() {
+qrScanning = false;
+if (qrAnimFrame) { cancelAnimationFrame(qrAnimFrame); qrAnimFrame = null; }
+if (qrStream) { qrStream.getTracks().forEach(t => t.stop()); qrStream = null; }
+document.getElementById(‘qr-overlay’).classList.remove(‘open’);
+}
+
+// –– scan loop using BarcodeDetector or canvas fallback ––
+async function qrScanLoop() {
+if (!qrScanning) return;
+const video = document.getElementById(‘qr-video’);
+if (video.readyState === video.HAVE_ENOUGH_DATA) {
+let code = null;
+// Try BarcodeDetector API (Chrome/Android)
+if (‘BarcodeDetector’ in window) {
+try {
+const detector = new BarcodeDetector({ formats: [‘qr_code’, ‘code_128’, ‘ean_13’, ‘code_39’] });
+const barcodes = await detector.detect(video);
+if (barcodes.length > 0) code = barcodes[0].rawValue;
+} catch(e) {}
+}
+// Fallback: canvas + ZXing-like manual read (jsQR)
+if (!code) {
+const canvas = document.getElementById(‘qr-canvas’);
+const ctx = canvas.getContext(‘2d’);
+canvas.width = video.videoWidth;
+canvas.height = video.videoHeight;
+ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+if (window.jsQR) {
+const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+const result = jsQR(imageData.data, imageData.width, imageData.height);
+if (result) code = result.data;
+}
+}
+if (code) { qrScanning = false; await handleQrCode(code); return; }
+}
+qrAnimFrame = requestAnimationFrame(qrScanLoop);
+}
+
+// –– handle scanned code ––
+async function handleQrCode(code) {
+const bar = document.getElementById(‘qr-result-bar’);
+const codeEl = document.getElementById(‘qr-result-code’);
+const statusEl = document.getElementById(‘qr-result-status’);
+codeEl.textContent = code;
+bar.classList.add(‘show’);
+
+// Check cooldown (ป้องกันตัดซ้ำ)
+const lastScan = qrCooldown[code];
+if (lastScan && Date.now() - lastScan < QR_COOLDOWN_MS) {
+const minLeft = Math.ceil((QR_COOLDOWN_MS - (Date.now() - lastScan)) / 60000);
+statusEl.textContent = ‘⚠️ สแกนซ้ำ! รอ ’ + minLeft + ’ นาทีก่อนตัดซ้ำ’;
+document.getElementById(‘qr-hint’).textContent = ‘⚠️ QR นี้เพิ่งถูกตัดสต็อคแล้ว’;
+await saveQrHistory(code, null, ‘ซ้ำ’);
+setTimeout(() => { closeQrScanner(); renderQrPage(); }, 2500);
+return;
+}
+
+// Check Firebase QR map
+let skuId = null;
+try {
+const mapData = await apiGet(qrMapPath());
+if (mapData) {
+// หา key ที่ตรงกับ code (encode เป็น key-safe)
+const safeCode = btoa(code).replace(/[+/=]/g, ‘_’);
+if (mapData[safeCode]) skuId = mapData[safeCode];
+}
+} catch(e) {}
+
+if (skuId && skus[skuId]) {
+// มี mapping แล้ว — ตัดสต็อคเลย
+statusEl.textContent = ’✅ จับคู่แล้ว: ’ + (skus[skuId]?.name || skuId);
+document.getElementById(‘qr-hint’).textContent = ’✅ ’ + (skus[skuId]?.name || skuId);
+await doQrDeduct(code, skuId);
+setTimeout(() => { closeQrScanner(); renderQrPage(); }, 1800);
+} else {
+// ยังไม่มี mapping — เปิด modal จับคู่
+statusEl.textContent = ‘🔗 ยังไม่มีการจับคู่ — เลือกสินค้า’;
+document.getElementById(‘qr-hint’).textContent = ‘🔗 กรุณาจับคู่สินค้า’;
+qrPendingCode = code;
+setTimeout(() => { closeQrScanner(); openQrMap(code); }, 800);
+}
+}
+
+// –– deduct stock ––
+async function doQrDeduct(code, skuId) {
+const now = new Date();
+const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+const rec = {
+skuId, type: ‘out’, qty: 1, unit: ‘pack’, pieces: 1,
+date: local.toISOString().slice(0, 16),
+note: ’สแกน QR: ’ + code.slice(0, 30),
+platform: ‘’, user, createdAt: Date.now(), fromQr: true
+};
+try {
+const key = await apiPost(rp() + ‘/movements’, rec);
+movements[key] = rec;
+movArr = Object.entries(movements).sort((a, b) => b[1].createdAt - a[1].createdAt);
+filterHist(); updateDash();
+qrCooldown[code] = Date.now();
+await saveQrHistory(code, skuId, ‘ตัดสต็อค’);
+toast(‘✅ ตัดสต็อค ’ + (skus[skuId]?.name || skuId) + ’ 1 แพ็ค’, ‘success’);
+lastHash.m = ‘’;
+} catch(e) { toast(’เกิดข้อผิดพลาด: ’ + e.message, ‘error’); }
+}
+
+async function saveQrHistory(code, skuId, action) {
+try {
+await apiPost(qrHistPath(), {
+code, skuId, skuName: skuId ? (skus[skuId]?.name || skuId) : null,
+action, user, ts: Date.now()
+});
+} catch(e) {}
+}
+
+// –– QR Map modal ––
+function openQrMap(code) {
+qrPendingCode = code;
+qrSelectedSkuId = null;
+document.getElementById(‘qr-map-code’).textContent = code;
+const sm = computeStock();
+const list = document.getElementById(‘qr-map-sku-list’);
+const ents = Object.entries(skus);
+if (!ents.length) {
+list.innerHTML = ‘<div class="empty-st">ยังไม่มีสินค้าในคลังนี้</div>’;
+} else {
+list.innerHTML = ents.map(([id, s]) => {
+const stock = sm[id] || 0;
+return `<div class="qr-sku-option" id="qropt-${id}" onclick="selectQrSku('${id}')"> <div class="qr-sku-radio"></div> <div class="qr-sku-body"> <div class="qr-sku-name">${s.name}</div> <div class="qr-sku-id">${s.unitSku || id}</div> </div> <div class="qr-sku-stock">${stock} แพ็ค</div> </div>`;
+}).join(’’);
+}
+document.getElementById(‘qr-map-overlay’).classList.add(‘open’);
+}
+
+function selectQrSku(skuId) {
+qrSelectedSkuId = skuId;
+document.querySelectorAll(’.qr-sku-option’).forEach(el => el.classList.remove(‘selected’));
+const opt = document.getElementById(‘qropt-’ + skuId);
+if (opt) opt.classList.add(‘selected’);
+}
+
+function closeQrMap() {
+document.getElementById(‘qr-map-overlay’).classList.remove(‘open’);
+qrPendingCode = null; qrSelectedSkuId = null;
+}
+
+async function confirmQrMap() {
+if (!qrSelectedSkuId) { toast(‘กรุณาเลือกสินค้า’, ‘error’); return; }
+if (!qrPendingCode) return;
+const code = qrPendingCode;
+const skuId = qrSelectedSkuId;
+// Save mapping to Firebase
+try {
+const safeCode = btoa(code).replace(/[+/=]/g, ‘_’);
+await apiPatch(qrMapPath(), { [safeCode]: skuId });
+toast(‘🔗 จับคู่ QR กับ ’ + (skus[skuId]?.name || skuId) + ’ แล้ว’, ‘success’);
+} catch(e) { toast(‘บันทึก mapping ไม่สำเร็จ’, ‘error’); }
+closeQrMap();
+// Deduct stock
+await doQrDeduct(code, skuId);
+renderQrPage();
+}
+
+// –– render QR page ––
+async function renderQrPage() {
+// Update room chip
+const whLabel = WAREHOUSES.find(w => w.id === room)?.label || room;
+const rc = document.getElementById(‘qrscan-room’);
+if (rc) rc.textContent = whLabel;
+
+// Render map table
+renderQrMapTable();
+// Render history
+renderQrHistTable();
+}
+
+async function renderQrMapTable() {
+const el = document.getElementById(‘qr-map-table’); if (!el) return;
+try {
+const mapData = await apiGet(qrMapPath());
+if (!mapData || !Object.keys(mapData).length) {
+el.innerHTML = ‘<div class="empty-st">ยังไม่มีการจับคู่ QR ในคลังนี้</div>’;
+return;
+}
+el.innerHTML = Object.entries(mapData).map(([safeCode, skuId]) => {
+let origCode = safeCode;
+try { origCode = atob(safeCode.replace(/_/g, ‘=’)); } catch(e) {}
+const s = skus[skuId] || {};
+return `<div style="display:flex;align-items:center;padding:11px 16px;border-bottom:.5px solid var(--border);gap:12px;"> <div style="flex:1;min-width:0;"> <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${origCode}</div> <div style="font-size:14px;font-weight:700;color:var(--text);margin-top:2px;">${s.name || skuId}</div> </div> <button onclick="deleteQrMap('${safeCode}')" style="background:var(--red-light);color:var(--red);border:1px solid #fca5a5;border-radius:7px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Sarabun',sans-serif;flex-shrink:0;">ลบ</button> </div>`;
+}).join(’’) + ‘<div style="padding:8px 14px;font-size:11px;color:var(--text3);background:var(--bg);">QR → สินค้า ของคลัง ’ + (WAREHOUSES.find(w=>w.id===room)?.label||room) + ’ เท่านั้น</div>’;
+} catch(e) {
+el.innerHTML = ‘<div class="empty-st">โหลดข้อมูลไม่สำเร็จ</div>’;
+}
+}
+
+async function deleteQrMap(safeCode) {
+if (!confirm(‘ลบการจับคู่ QR นี้?’)) return;
+try {
+await apiDel(qrMapPath() + ‘/’ + safeCode);
+toast(‘ลบการจับคู่แล้ว’, ‘’);
+renderQrMapTable();
+} catch(e) { toast(‘เกิดข้อผิดพลาด’, ‘error’); }
+}
+
+async function renderQrHistTable() {
+const el = document.getElementById(‘qr-scan-history’); if (!el) return;
+try {
+const histData = await apiGet(qrHistPath());
+if (!histData || !Object.keys(histData).length) {
+el.innerHTML = ‘<div class="empty-st">ยังไม่มีประวัติการสแกน</div>’;
+return;
+}
+const items = Object.values(histData).sort((a, b) => b.ts - a.ts).slice(0, 30);
+el.innerHTML = items.map(item => {
+const d = new Date(item.ts);
+const ds = d.getDate()+’/’+(d.getMonth()+1)+’ ‘+String(d.getHours()).padStart(2,‘0’)+’:’+String(d.getMinutes()).padStart(2,‘0’);
+const isDup = item.action === ‘ซ้ำ’;
+return `<div class="qr-hist-item"> <div style="flex:1;min-width:0;"> <div class="qr-hist-sku">${item.skuName || (isDup ? '⚠️ ตัดซ้ำ' : '-')}</div> <div class="qr-hist-code">${item.code}</div> <div style="font-size:11px;color:var(--text3);">${item.user || '-'}</div> </div> <div style="text-align:right;flex-shrink:0;"> ${isDup ? '<span class="qr-dup-badge">ซ้ำ</span>' : '<span style="font-size:12px;color:var(--green);font-weight:700;">−1 แพ็ค</span>'} <div class="qr-hist-time">${ds}</div> </div> </div>`;
+}).join(’’);
+} catch(e) {
+el.innerHTML = ‘<div class="empty-st">โหลดประวัติไม่สำเร็จ</div>’;
+}
+}
 
 </script>
 <style>
@@ -589,8 +848,56 @@ html, body { height: 100%; font-family: 'Sarabun', -apple-system, sans-serif; ba
 .notif-bell { position:relative; }
 .notif-dot { position:absolute; top:-2px; right:-2px; width:8px; height:8px; border-radius:50%; background:var(–red); border:1.5px solid var(–surface); display:none; }
 .notif-dot.show { display:block; }
-</style>
 
+/* ===== QR SCANNER ===== */
+.qr-overlay { position:fixed; inset:0; background:#000; z-index:8500; display:none; flex-direction:column; }
+.qr-overlay.open { display:flex; }
+.qr-header { display:flex; align-items:center; justify-content:space-between; padding:calc(var(–safe-top) + 12px) 16px 12px; background:rgba(0,0,0,.85); flex-shrink:0; }
+.qr-header-title { font-size:16px; font-weight:700; color:#fff; display:flex; align-items:center; gap:8px; }
+.qr-close-btn { width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,.15); border:none; color:#fff; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.qr-video-wrap { flex:1; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; background:#000; }
+#qr-video { width:100%; height:100%; object-fit:cover; display:block; }
+.qr-frame { position:absolute; width:220px; height:220px; pointer-events:none; }
+.qr-frame::before,.qr-frame::after { content:’’; position:absolute; width:40px; height:40px; border-color:#fff; border-style:solid; }
+.qr-frame::before { top:0; left:0; border-width:3px 0 0 3px; border-radius:4px 0 0 0; }
+.qr-frame::after  { bottom:0; right:0; border-width:0 3px 3px 0; border-radius:0 0 4px 0; }
+.qr-frame-tr { position:absolute; top:0; right:0; width:40px; height:40px; border-top:3px solid #fff; border-right:3px solid #fff; border-radius:0 4px 0 0; }
+.qr-frame-bl { position:absolute; bottom:0; left:0; width:40px; height:40px; border-bottom:3px solid #fff; border-left:3px solid #fff; border-radius:0 0 0 4px; }
+.qr-scan-line { position:absolute; left:10%; width:80%; height:2px; background:linear-gradient(90deg,transparent,#007aff,transparent); animation:qrScan 2s ease-in-out infinite; }
+@keyframes qrScan { 0%,100%{top:10%} 50%{top:90%} }
+.qr-hint { position:absolute; bottom:20px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.65); color:#fff; font-size:13px; font-weight:600; padding:8px 20px; border-radius:20px; white-space:nowrap; font-family:‘Sarabun’,sans-serif; }
+.qr-result-bar { position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,.85); padding:14px 20px; display:none; }
+.qr-result-bar.show { display:block; }
+.qr-result-code { font-family:‘IBM Plex Mono’,monospace; font-size:13px; color:#5ac8fa; font-weight:600; margin-bottom:4px; word-break:break-all; }
+.qr-result-status { font-size:12px; color:rgba(255,255,255,.6); }
+
+/* QR Map modal */
+.qr-map-overlay { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9000; display:none; align-items:flex-end; justify-content:center; backdrop-filter:blur(3px); }
+.qr-map-overlay.open { display:flex; }
+.qr-map-sheet { background:var(–surface); border-radius:20px 20px 0 0; width:100%; max-width:540px; max-height:90vh; overflow-y:auto; animation:slideUp .28s ease; padding-bottom:calc(var(–safe-bottom)+16px); }
+.qr-map-head { padding:14px 20px 12px; border-bottom:1px solid var(–border); }
+.qr-map-title { font-size:16px; font-weight:700; color:var(–text); }
+.qr-map-code { font-family:‘IBM Plex Mono’,monospace; font-size:12px; color:var(–accent); margin-top:4px; word-break:break-all; }
+.qr-sku-option { display:flex; align-items:center; padding:13px 20px; border-bottom:.5px solid var(–border); gap:12px; cursor:pointer; }
+.qr-sku-option:active { background:var(–surface2); }
+.qr-sku-option.selected { background:var(–accent-light); }
+.qr-sku-radio { width:20px; height:20px; border-radius:50%; border:2px solid var(–border); flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+.qr-sku-option.selected .qr-sku-radio { border-color:var(–accent); background:var(–accent); }
+.qr-sku-option.selected .qr-sku-radio::after { content:’’; width:8px; height:8px; border-radius:50%; background:#fff; }
+.qr-sku-body { flex:1; min-width:0; }
+.qr-sku-name { font-size:15px; font-weight:600; color:var(–text); }
+.qr-sku-id { font-family:‘IBM Plex Mono’,monospace; font-size:11px; color:var(–text3); margin-top:1px; }
+.qr-sku-stock { font-family:‘IBM Plex Mono’,monospace; font-size:14px; font-weight:700; color:var(–accent); }
+
+/* QR History panel */
+.qr-hist-item { display:flex; align-items:center; padding:10px 16px; border-bottom:.5px solid var(–border); gap:10px; }
+.qr-hist-item:last-child { border-bottom:none; }
+.qr-hist-code { font-family:‘IBM Plex Mono’,monospace; font-size:12px; color:var(–text2); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.qr-hist-sku { font-size:13px; font-weight:600; color:var(–text); }
+.qr-hist-time { font-size:11px; color:var(–text3); white-space:nowrap; }
+.qr-dup-badge { background:var(–orange-light); border:1px solid #fcd34d; border-radius:6px; padding:2px 7px; font-size:11px; font-weight:700; color:var(–orange); }
+
+</style>
 </head>
 <body>
 
@@ -808,6 +1115,7 @@ html, body { height: 100%; font-family: 'Sarabun', -apple-system, sans-serif; ba
     <button class="nb" onclick="showPg('history',this)"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg><span>ประวัติ</span></button>
     <div class="nb-mid"><button class="nb-add" onclick="showPg('record',null)"><svg width="22" height="22" fill="none" stroke="#fff" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div>
     <button class="nb" onclick="showPg('products',this)"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg><span>สินค้า</span></button>
+    <button class="nb" id="nb-qrscan" onclick="showPg('qrscan',this)"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h.01M17 17h.01M14 17h.01M17 14h.01"/></svg><span>สแกน QR</span></button>
     <button class="nb" onclick="showPg('reports',this)"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>รายงาน</span></button>
   </div>
 </div>
@@ -885,6 +1193,79 @@ html, body { height: 100%; font-family: 'Sarabun', -apple-system, sans-serif; ba
       </div>
       <button id="sku-del-btn" class="primary-btn btn-red" style="display:none;width:100%;padding:13px;font-size:15px;" onclick="deleteSku()">🗑 ลบสินค้านี้</button>
     </div>
+  </div>
+</div>
+
+<!-- QR SCANNER OVERLAY -->
+
+<div class="qr-overlay" id="qr-overlay">
+  <div class="qr-header">
+    <div class="qr-header-title">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h.01M14 17h.01M17 14h.01M17 17h.01M17 20h.01M20 17h.01M20 20h.01"/></svg>
+      สแกน QR — <span id="qr-wh-name" style="color:#5ac8fa;">-</span>
+    </div>
+    <button class="qr-close-btn" onclick="closeQrScanner()">✕</button>
+  </div>
+  <div class="qr-video-wrap">
+    <video id="qr-video" playsinline autoplay muted></video>
+    <canvas id="qr-canvas" style="display:none;"></canvas>
+    <div class="qr-frame">
+      <div class="qr-frame-tr"></div>
+      <div class="qr-frame-bl"></div>
+    </div>
+    <div class="qr-scan-line"></div>
+    <div class="qr-hint" id="qr-hint">จ่อ QR Code ในกรอบ</div>
+    <div class="qr-result-bar" id="qr-result-bar">
+      <div class="qr-result-code" id="qr-result-code"></div>
+      <div class="qr-result-status" id="qr-result-status"></div>
+    </div>
+  </div>
+</div>
+
+<!-- QR MAP MODAL (จับคู่ QR กับ SKU) -->
+
+<div class="qr-map-overlay" id="qr-map-overlay">
+  <div class="qr-map-sheet">
+    <div class="sh-handle"></div>
+    <div class="qr-map-head">
+      <div class="qr-map-title">🔗 จับคู่ QR กับสินค้า</div>
+      <div class="qr-map-code" id="qr-map-code"></div>
+      <div style="font-size:12px;color:var(--text2);margin-top:6px;">เลือกสินค้าที่ตรงกับ QR นี้ — ระบบจะจำให้ครั้งต่อไป</div>
+    </div>
+    <div id="qr-map-sku-list"></div>
+    <div style="padding:12px 20px;display:flex;gap:10px;">
+      <button class="primary-btn btn-gray" style="flex:0.5;padding:13px;font-size:14px;" onclick="closeQrMap()">ยกเลิก</button>
+      <button class="primary-btn" style="flex:1;padding:13px;font-size:14px;" onclick="confirmQrMap()">✓ จับคู่และตัดสต็อค</button>
+    </div>
+  </div>
+</div>
+
+<!-- QR SCAN PAGE -->
+
+<div class="page" id="page-qrscan">
+  <div class="prow" style="align-items:center;">
+    <div>
+      <div class="ph1">สแกน QR</div>
+      <div class="room-chip" id="qrscan-room">-</div>
+    </div>
+    <button onclick="openQrScanner()" style="background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Sarabun',sans-serif;display:flex;align-items:center;gap:6px;">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h.01M14 17h.01M17 14h.01M17 17h.01"/></svg>
+      สแกน
+    </button>
+  </div>
+
+  <!-- QR Map table -->
+
+  <div class="sec-lbl">🔗 ตาราง QR → สินค้า (คลังนี้)</div>
+  <div class="card" id="qr-map-table">
+    <div class="empty-st">ยังไม่มีการจับคู่ QR</div>
+  </div>
+
+  <!-- Scan history -->
+
+  <div class="sec-lbl">📋 ประวัติการสแกน</div>
+  <div class="card" id="qr-scan-history">
+    <div class="empty-st">ยังไม่มีประวัติ</div>
   </div>
 </div>
 
@@ -1071,6 +1452,8 @@ function switchWarehouse(whId){
   setActiveTab();
   const whLabel=WAREHOUSES.find(w=>w.id===whId)?.label||whId;
   document.getElementById('dash-room').textContent=whLabel;
+  const qrRoom=document.getElementById('qrscan-room');if(qrRoom)qrRoom.textContent=whLabel;
+  const qrWhName=document.getElementById('qr-wh-name');if(qrWhName)qrWhName.textContent=whLabel;
   document.getElementById('dash-stock').innerHTML='<div class="loading-row"><div class="spinner"></div>กำลังโหลด...</div>';
   document.getElementById('dash-recent').innerHTML='<div class="loading-row"><div class="spinner"></div>กำลังโหลด...</div>';
   document.getElementById('hist-list').innerHTML='<div class="loading-row"><div class="spinner"></div>กำลังโหลด...</div>';
@@ -1094,6 +1477,7 @@ function showPg(name,el){
   if(name==='record')setDefDate();
   if(name==='reports'){requestAnimationFrame(()=>requestAnimationFrame(()=>{destroyAllCharts();renderReports();}));}
   if(name==='dash'){requestAnimationFrame(()=>renderDashChart());}
+  if(name==='qrscan'){renderQrPage();}
 }
 
 function openRename(whId){renamingWhId=whId;const wh=WAREHOUSES.find(w=>w.id===whId);document.getElementById('rename-sub').textContent='ชื่อปัจจุบัน: '+(wh?.label||whId);const inp=document.getElementById('rename-inp');inp.value=wh?.label||'';document.getElementById('ov-rename').classList.add('open');setTimeout(()=>inp.focus(),100);}
