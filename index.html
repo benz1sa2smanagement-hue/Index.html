@@ -1365,7 +1365,7 @@ html, body { height: 100%; font-family: 'Sarabun', -apple-system, sans-serif; ba
 /* ===================================================
    ORIGINAL JS — คัดลอกมาทั้งหมด ไม่แตะ
    =================================================== */
-const DB='https://stock-30382-default-rtdb.asia-southeast1.firebasedatabase.app';
+const DB='https://kiyomi-b19d0-default-rtdb.asia-southeast1.firebasedatabase.app';
 let pcBuffer='';const PC_LEN=6;
 function hashCode(s){let h=0;for(let i=0;i<s.length;i++)h=(Math.imul(31,h)+s.charCodeAt(i))|0;return('0000000'+(h>>>0).toString(16)).slice(-8).toUpperCase();}
 function pcKey(d){if(pcBuffer.length>=PC_LEN)return;pcBuffer+=d;updatePcDisplay();if(pcBuffer.length===PC_LEN)setTimeout(confirmPasscode,160);}
