@@ -395,7 +395,7 @@ html,body{height:100%;font-family:'Sarabun',-apple-system,sans-serif;background:
         <div class="sblock"><div class="slabel">รายการวันนี้</div><div class="sval" id="s-today">0</div><div class="sunit">รายการ</div></div>
         <div class="sblock"><div class="slabel">SKU ทั้งหมด</div><div class="sval" id="s-skus">0</div><div class="sunit">สินค้า</div></div>
         <div class="sblock" style="background:var(--green-light);border-color:#a7f3d0;"><div class="slabel" style="color:#059669;">รับเข้าวันนี้</div><div class="sval" style="color:var(--green);" id="s-in">0</div><div class="sunit">แพ็ค</div></div>
-        <div class="sblock" style="background:var(--red-light);border-color:#fca5a5;"><div class="slabel" style="color:var(--red);">จ่ายออกวันนี้</div><div class="sval" style="color:var(--red);" id="s-out">0</div><div class="sunit">แพ็ค</div></div>
+        <div class="sblock" style="background:var(--red-light);border-color:#fca5a5;cursor:pointer;" onclick="showOutDetail()"><div class="slabel" style="color:var(--red);">จ่ายออกวันนี้</div><div class="sval" style="color:var(--red);" id="s-out">0</div><div class="sunit">แพ็ค · แตะดูรายละเอียด 👆</div></div>
       </div>
       <div class="dash-chart-wrap"><div class="dash-chart-title">สต็อคคงเหลือแต่ละสินค้า (แพ็ค)</div><div class="dash-chart-box"><canvas id="ch-dash-stock"></canvas></div></div>
       <div class="sec-lbl">สต็อคคงเหลือ</div>
@@ -767,6 +767,33 @@ html,body{height:100%;font-family:'Sarabun',-apple-system,sans-serif;background:
   </div>
 </div>
 
+<div class="low-stock-overlay" id="out-detail-overlay">
+  <div class="low-stock-sheet" style="max-height:88vh;">
+    <div class="low-stock-head"><div class="low-stock-title" style="color:var(--red);">📤 จ่ายออกวันนี้</div><button class="low-stock-close" onclick="closeOutDetail()">✕</button></div>
+    <div style="padding:14px 20px 4px;display:flex;gap:10px;">
+      <div style="flex:1;background:var(--red-light);border:1px solid #fca5a5;border-radius:12px;padding:10px 12px;text-align:center;">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:700;color:var(--red);" id="od-total">0</div>
+        <div style="font-size:11px;color:var(--text2);font-weight:600;">แพ็ครวม</div>
+      </div>
+      <div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:10px 12px;text-align:center;">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:700;color:var(--text);" id="od-skucount">0</div>
+        <div style="font-size:11px;color:var(--text2);font-weight:600;">SKU ที่ออก</div>
+      </div>
+    </div>
+    <div style="padding:14px 20px 4px;">
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;">สัดส่วนตามสินค้า</div>
+      <div style="position:relative;width:100%;height:220px;"><canvas id="ch-out-pie"></canvas></div>
+    </div>
+    <div style="padding:14px 20px 4px;">
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;">จำนวนแพ็คที่จ่ายออก (มาก → น้อย)</div>
+      <div style="position:relative;width:100%;height:220px;"><canvas id="ch-out-bar"></canvas></div>
+    </div>
+    <div class="sec-lbl" style="padding:14px 20px 6px;">รายละเอียดแต่ละ SKU</div>
+    <div id="od-list"></div>
+    <div style="padding:14px 20px 0;"><button class="primary-btn" style="padding:12px;font-size:14px;" onclick="closeOutDetail()">ปิด</button></div>
+  </div>
+</div>
+
 <script>
 const DB='https://kiyomi-b19d0-default-rtdb.asia-southeast1.firebasedatabase.app';
 let pcBuffer='';const PC_LEN=6;
@@ -780,7 +807,7 @@ let currentWsKey='',currentPasscode='',room='',user='',skus={},movements={},movA
 let pollTimer=null,whPollTimer=null,lastHash={s:'',m:'',w:''};
 let editingId=null,editingSkuId=null,histTypeFilter='',recType='in',curPlat='';
 let imgUnit=null,imgCase=null;
-let chPlatQty,chDeduct,chSkuVal,chMonthly,chDashStock,chAwCompare,chExpTrend;
+let chPlatQty,chDeduct,chSkuVal,chMonthly,chDashStock,chAwCompare,chExpTrend,chOutPie,chOutBar;
 let expPeriod='day';
 const WH_DEFAULTS=[{id:'WH_A',label:'คลัง A'},{id:'WH_B',label:'คลัง B'},{id:'WH_C',label:'คลัง C'}];
 let WAREHOUSES=[],renamingWhId=null;
@@ -838,13 +865,73 @@ function openRename(whId){renamingWhId=whId;const wh=WAREHOUSES.find(w=>w.id===w
 function closeRename(){document.getElementById('ov-rename').classList.remove('open');renamingWhId=null;}
 function closeRenameOv(e){if(e.target===document.getElementById('ov-rename'))closeRename();}
 async function saveRename(){if(!renamingWhId)return;const val=document.getElementById('rename-inp').value.trim();if(!val){toast('กรุณากรอกชื่อคลัง','error');return;}const wh=WAREHOUSES.find(w=>w.id===renamingWhId);if(wh)wh.label=val;await saveWhLabelToFirebase(renamingWhId,val);buildWhTabs();setActiveTab();if(room===renamingWhId)document.getElementById('dash-room').textContent=val;toast('✅ เปลี่ยนชื่อเป็น "'+val+'" — ซิงค์แล้ว','success');closeRename();lastHash.w='';}
-function destroyAllCharts(){[chPlatQty,chDeduct,chSkuVal,chMonthly,chDashStock,chAwCompare,chExpTrend].forEach(c=>{if(c){try{c.destroy();}catch(e){}}});chPlatQty=chDeduct=chSkuVal=chMonthly=chDashStock=chAwCompare=chExpTrend=null;}
+function destroyAllCharts(){[chPlatQty,chDeduct,chSkuVal,chMonthly,chDashStock,chAwCompare,chExpTrend,chOutPie,chOutBar].forEach(c=>{if(c){try{c.destroy();}catch(e){}}});chPlatQty=chDeduct=chSkuVal=chMonthly=chDashStock=chAwCompare=chExpTrend=chOutPie=chOutBar=null;}
 function computeStock(){const map={};Object.values(movements).forEach(m=>{if(!map[m.skuId])map[m.skuId]=0;if(m.type==='in'&&!m.isTransferIn)map[m.skuId]+=m.pieces;else if(m.type==='in'&&m.isTransferIn)map[m.skuId]+=m.pieces;else if(m.type==='adj'){if(m.adjDir==='minus')map[m.skuId]-=m.pieces;else map[m.skuId]+=m.pieces;}else if(m.type==='out')map[m.skuId]-=m.pieces;else if(m.type==='transfer')map[m.skuId]-=m.pieces;});return map;}
 function computeStockFrom(mvs){const map={};Object.values(mvs).forEach(m=>{if(!map[m.skuId])map[m.skuId]=0;if(m.type==='in')map[m.skuId]+=m.pieces;else if(m.type==='adj'){if(m.adjDir==='minus')map[m.skuId]-=m.pieces;else map[m.skuId]+=m.pieces;}else if(m.type==='out')map[m.skuId]-=m.pieces;else if(m.type==='transfer')map[m.skuId]-=m.pieces;});return map;}
 const clrs=['#007aff','#34c759','#ff9500','#ff3b30','#af52de','#5ac8fa','#ff6b35','#30d158'];
 function fmtB(n){return'฿'+Math.round(n).toLocaleString('th-TH');}
-function updateDash(){const today=new Date().toISOString().slice(0,10);let cnt=0,tin=0,tout=0;Object.values(movements).forEach(m=>{const d=(m.date||'').slice(0,10);if(d===today){cnt++;if(m.type==='in'&&!m.isTransferIn)tin+=m.pieces;else if(m.type==='out'||m.type==='transfer')tout+=m.pieces;}});document.getElementById('s-today').textContent=cnt;document.getElementById('s-skus').textContent=Object.keys(skus).length;document.getElementById('s-in').textContent=tin;document.getElementById('s-out').textContent=tout;renderDashStock();renderDashRecent();renderDashChart();}
-function renderDashChart(){const sm=computeStock();const ents=Object.entries(sm).filter(([,v])=>v>0);const el=document.getElementById('ch-dash-stock');if(!el)return;if(chDashStock){chDashStock.destroy();chDashStock=null;}if(!ents.length)return;const labels=ents.map(([id])=>skus[id]?.name||id);const data=ents.map(([,v])=>v);const pW=el.parentElement.offsetWidth||window.innerWidth-64;el.width=pW;el.height=200;el.style.width=pW+'px';el.style.height='200px';chDashStock=new Chart(el.getContext('2d'),{type:'bar',data:{labels,datasets:[{label:'สต็อค(แพ็ค)',data,backgroundColor:clrs.slice(0,ents.length).map(c=>c+'99'),borderColor:clrs.slice(0,ents.length),borderWidth:2,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{family:'Sarabun',size:11},maxRotation:30},grid:{display:false}},y:{beginAtZero:true,ticks:{font:{family:'Sarabun',size:10}}}}}});}
+function updateDash(){const today=new Date().toISOString().slice(0,10);let cnt=0,tin=0,tout=0;Object.values(movements).forEach(m=>{const d=(m.date||'').slice(0,10);if(d===today){cnt++;if(m.type==='in'&&!m.isTransferIn)tin+=m.pieces;else if(m.type==='out'||m.type==='transfer')tout+=m.pieces;}});document.getElementById('s-today').textContent=cnt;document.getElementById('s-skus').textContent=Object.keys(skus).length;document.getElementById('s-in').textContent=tin;document.getElementById('s-out').textContent=tout;renderDashStock();renderDashRecent();renderDashChart();if(document.getElementById('out-detail-overlay')?.classList.contains('open'))showOutDetail();}
+function getTodayOutBreakdown(){
+  const today=new Date().toISOString().slice(0,10);
+  const byItem={};
+  Object.values(movements).forEach(m=>{
+    if((m.date||'').slice(0,10)!==today)return;
+    if(m.type==='out'||m.type==='transfer'){
+      byItem[m.skuId]=(byItem[m.skuId]||0)+m.pieces;
+    }
+  });
+  return Object.entries(byItem).sort((a,b)=>b[1]-a[1]);
+}
+function fmtQtyCases(pieces,ppc){
+  if(ppc>1){
+    const cases=Math.floor(pieces/ppc);
+    const rem=pieces%ppc;
+    let t=(cases>0?cases+' ลัง':'')+(rem>0?(cases>0?' + ':'')+rem+' แพ็ค':'');
+    return t||'0 แพ็ค';
+  }
+  return pieces+' แพ็ค';
+}
+function showOutDetail(){
+  const ents=getTodayOutBreakdown();
+  const totalPieces=ents.reduce((s,[,v])=>s+v,0);
+  document.getElementById('od-total').textContent=totalPieces;
+  document.getElementById('od-skucount').textContent=ents.length;
+  const listEl=document.getElementById('od-list');
+  if(!ents.length){
+    listEl.innerHTML='<div class="empty-st">ยังไม่มีการจ่ายออกวันนี้</div>';
+  }else{
+    listEl.innerHTML=ents.map(([id,pieces])=>{
+      const s=skus[id]||{};
+      const ppc=s.piecesPerCase||1;
+      const qtyTxt=fmtQtyCases(pieces,ppc);
+      return '<div class="srow"><div class="sname">'+(s.name||id)+'</div><div style="text-align:right;"><div class="sqty" style="color:var(--red);">'+qtyTxt+'</div><div class="ssub">รวม '+pieces+' แพ็ค</div></div></div>';
+    }).join('');
+  }
+  const labels=ents.map(([id])=>skus[id]?.name||id);
+  const data=ents.map(([,v])=>v);
+  const colors=['#ff3b30','#ff9500','#ff6b35','#af52de','#007aff','#34c759','#5ac8fa','#30d158'];
+  if(chOutPie){try{chOutPie.destroy();}catch(e){}chOutPie=null;}
+  if(chOutBar){try{chOutBar.destroy();}catch(e){}chOutBar=null;}
+  const pieEl=document.getElementById('ch-out-pie');
+  const barEl=document.getElementById('ch-out-bar');
+  document.getElementById('out-detail-overlay').classList.add('open');
+  requestAnimationFrame(()=>{
+    if(pieEl&&ents.length){
+      const pW=pieEl.parentElement.offsetWidth||300;pieEl.width=pW;pieEl.height=220;pieEl.style.width=pW+'px';pieEl.style.height='220px';
+      chOutPie=new Chart(pieEl.getContext('2d'),{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors.slice(0,ents.length).concat(colors).slice(0,ents.length),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{position:'bottom',labels:{font:{family:'Sarabun',size:11},padding:8,boxWidth:10,usePointStyle:true}}}}});
+    }else if(pieEl){pieEl.getContext('2d').clearRect(0,0,pieEl.width,pieEl.height);}
+    if(barEl&&ents.length){
+      const bW=barEl.parentElement.offsetWidth||300;barEl.width=bW;barEl.height=220;barEl.style.width=bW+'px';barEl.style.height='220px';
+      chOutBar=new Chart(barEl.getContext('2d'),{type:'bar',data:{labels,datasets:[{label:'แพ็คที่จ่ายออก',data,backgroundColor:colors.slice(0,ents.length).concat(colors).slice(0,ents.length).map(c=>c+'99'),borderColor:colors.slice(0,ents.length).concat(colors).slice(0,ents.length),borderWidth:2,borderRadius:6}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{font:{family:'Sarabun',size:10}}},y:{ticks:{font:{family:'Sarabun',size:11}}}}}});
+    }else if(barEl){barEl.getContext('2d').clearRect(0,0,barEl.width,barEl.height);}
+  });
+}
+function closeOutDetail(){
+  document.getElementById('out-detail-overlay').classList.remove('open');
+  if(chOutPie){try{chOutPie.destroy();}catch(e){}chOutPie=null;}
+  if(chOutBar){try{chOutBar.destroy();}catch(e){}chOutBar=null;}
+}
+function renderDashChart(){const sm=computeStock();const ents=Object.entries(sm).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);const el=document.getElementById('ch-dash-stock');if(!el)return;if(chDashStock){chDashStock.destroy();chDashStock=null;}if(!ents.length)return;const labels=ents.map(([id])=>skus[id]?.name||id);const data=ents.map(([,v])=>v);const pW=el.parentElement.offsetWidth||window.innerWidth-64;el.width=pW;el.height=200;el.style.width=pW+'px';el.style.height='200px';chDashStock=new Chart(el.getContext('2d'),{type:'bar',data:{labels,datasets:[{label:'สต็อค(แพ็ค)',data,backgroundColor:clrs.slice(0,ents.length).map(c=>c+'99'),borderColor:clrs.slice(0,ents.length),borderWidth:2,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{family:'Sarabun',size:11},maxRotation:30},grid:{display:false}},y:{beginAtZero:true,ticks:{font:{family:'Sarabun',size:10}}}}}});}
 function renderDashStock(){const el=document.getElementById('dash-stock');const sm=computeStock();const ents=Object.entries(sm);if(!ents.length){el.innerHTML='<div class="empty-st">ยังไม่มีสต็อค</div>';return;}el.innerHTML=ents.map(([id,v],i)=>{const s=skus[id]||{};const cs=s.piecesPerCase>1?Math.floor(v/s.piecesPerCase):null;const imgH=s.imageUnit?'<img src="'+s.imageUnit+'" style="width:34px;height:34px;object-fit:cover;border-radius:7px;border:1px solid var(--border);flex-shrink:0;">':'';return'<div class="srow">'+imgH+'<div class="sdot" style="background:'+clrs[i%clrs.length]+';'+(s.imageUnit?'display:none;':'')+'"></div><div class="sname">'+(s.name||id)+'</div><div style="text-align:right;"><div class="sqty">'+v+'</div>'+(cs!==null?'<div class="ssub">/ '+cs+' ลัง</div>':'')+'<div class="ssub">แพ็ค</div></div></div>';}).join('');}
 function renderDashRecent(){const el=document.getElementById('dash-recent');const items=movArr.slice(0,5);if(!items.length){el.innerHTML='<div class="empty-st">ยังไม่มีรายการ</div>';return;}el.innerHTML=items.map(([id,m])=>movRowHtml(id,m,true)).join('');}
 function setHType(t,el){histTypeFilter=t;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');filterHist();}
