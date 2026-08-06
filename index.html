@@ -907,7 +907,8 @@ function showOutDetail(){
       return '<div class="srow"><div class="sname">'+(s.name||id)+'</div><div style="text-align:right;"><div class="sqty" style="color:var(--red);">'+qtyTxt+'</div><div class="ssub">รวม '+pieces+' แพ็ค</div></div></div>';
     }).join('');
   }
-  const labels=ents.map(([id])=>skus[id]?.name||id);
+  const rawLabels=ents.map(([id])=>skus[id]?.name||id);
+  const labels=rawLabels.map(n=>n.length>16?n.slice(0,15)+'…':n);
   const data=ents.map(([,v])=>v);
   const colors=['#ff3b30','#ff9500','#ff6b35','#af52de','#007aff','#34c759','#5ac8fa','#30d158'];
   if(chOutPie){try{chOutPie.destroy();}catch(e){}chOutPie=null;}
@@ -918,11 +919,14 @@ function showOutDetail(){
   requestAnimationFrame(()=>{
     if(pieEl&&ents.length){
       const pW=pieEl.parentElement.offsetWidth||300;pieEl.width=pW;pieEl.height=220;pieEl.style.width=pW+'px';pieEl.style.height='220px';
-      chOutPie=new Chart(pieEl.getContext('2d'),{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors.slice(0,ents.length).concat(colors).slice(0,ents.length),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{position:'bottom',labels:{font:{family:'Sarabun',size:11},padding:8,boxWidth:10,usePointStyle:true}}}}});
+      chOutPie=new Chart(pieEl.getContext('2d'),{type:'doughnut',data:{labels:rawLabels,datasets:[{data,backgroundColor:colors.slice(0,ents.length).concat(colors).slice(0,ents.length),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{position:'bottom',labels:{font:{family:'Sarabun',size:11},padding:8,boxWidth:10,usePointStyle:true}}}}});
     }else if(pieEl){pieEl.getContext('2d').clearRect(0,0,pieEl.width,pieEl.height);}
     if(barEl&&ents.length){
-      const bW=barEl.parentElement.offsetWidth||300;barEl.width=bW;barEl.height=220;barEl.style.width=bW+'px';barEl.style.height='220px';
-      chOutBar=new Chart(barEl.getContext('2d'),{type:'bar',data:{labels,datasets:[{label:'แพ็คที่จ่ายออก',data,backgroundColor:colors.slice(0,ents.length).concat(colors).slice(0,ents.length).map(c=>c+'99'),borderColor:colors.slice(0,ents.length).concat(colors).slice(0,ents.length),borderWidth:2,borderRadius:6}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{font:{family:'Sarabun',size:10}}},y:{ticks:{font:{family:'Sarabun',size:11}}}}}});
+      const bW=barEl.parentElement.offsetWidth||300;
+      const bH=Math.max(220,ents.length*36);
+      barEl.width=bW;barEl.height=bH;barEl.style.width=bW+'px';barEl.style.height=bH+'px';
+      barEl.parentElement.style.height=bH+'px';
+      chOutBar=new Chart(barEl.getContext('2d'),{type:'bar',data:{labels,datasets:[{label:'แพ็คที่จ่ายออก',data,backgroundColor:colors.slice(0,ents.length).concat(colors).slice(0,ents.length).map(c=>c+'99'),borderColor:colors.slice(0,ents.length).concat(colors).slice(0,ents.length),borderWidth:2,borderRadius:6}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,layout:{padding:{left:4}},plugins:{legend:{display:false},tooltip:{callbacks:{title:(items)=>rawLabels[items[0].dataIndex]}}},scales:{x:{beginAtZero:true,ticks:{font:{family:'Sarabun',size:10}}},y:{afterFit:(scale)=>{scale.width=120;},ticks:{font:{family:'Sarabun',size:11},autoSkip:false,crossAlign:'far'}}}}});
     }else if(barEl){barEl.getContext('2d').clearRect(0,0,barEl.width,barEl.height);}
   });
 }
